@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Web 303 – Drum Machine + Acid Bass</title>
+  <style>
+    :root {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #050509;
+      color: #e5e7eb;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .app {
+      background: radial-gradient(circle at top left, #1f2937, #020617);
+      border-radius: 18px;
+      padding: 24px 28px 18px;
+      box-shadow:
+        0 30px 80px rgba(0, 0, 0, 0.8),
+        0 0 0 1px rgba(15, 23, 42, 0.7);
+      max-width: 950px;
+      width: 100%;
+    }
+
+    h1 {
+      margin: 0 0 4px;
+      font-size: 1.4rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #f97316;
+    }
+
+    .subtitle {
+      margin-bottom: 18px;
+      font-size: 0.9rem;
+      color: #9ca3af;
+    }
+
+    .controls {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 18px;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      border: none;
+      border-radius: 999px;
+      padding: 8px 18px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      background: #f97316;
+      color: #111827;
+      transition: transform 0.07s ease, box-shadow 0.07s ease, background 0.15s;
+      box-shadow: 0 4px 0 #b45309;
+    }
+
+    .btn:active {
+      transform: translateY(2px);
+      box-shadow: 0 2px 0 #b45309;
+    }
+
+    .btn.secondary {
+      background: #374151;
+      color: #e5e7eb;
+      box-shadow: 0 4px 0 #020617;
+    }
+
+    .tempo-control {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.9rem;
+    }
+
+    .tempo-control input[type="range"] {
+      width: 170px;
+    }
+
+    .tempo-value {
+      min-width: 40px;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .section-label {
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      color: #9ca3af;
+      margin-bottom: 6px;
+      margin-top: 10px;
+    }
+
+    .tracks {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 4px;
+    }
+
+    .track-row {
+      display: grid;
+      grid-template-columns: 120px 1fr;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .track-info {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      font-size: 0.8rem;
+    }
+
+    .track-label {
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      color: #d1d5db;
+    }
+
+    .sample-select {
+      font-size: 0.8rem;
+      padding: 2px 6px;
+      border-radius: 999px;
+      border: 1px solid #4b5563;
+      background: #020617;
+      color: #e5e7eb;
+    }
+
+    .step-grid {
+      display: grid;
+      grid-template-columns: repeat(16, 1fr);
+      gap: 4px;
+    }
+
+    .step {
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      border-radius: 6px;
+      border: 1px solid #374151;
+      background: radial-gradient(circle at 30% 30%, #374151, #020617);
+      cursor: pointer;
+      position: relative;
+      transition:
+        transform 0.07s ease,
+        box-shadow 0.07s ease,
+        border-color 0.1s,
+        background 0.1s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.7rem;
+      color: #9ca3af;
+      user-select: none;
+    }
+
+    .step.on {
+      border-color: #f97316;
+      background: radial-gradient(circle at 30% 30%, #fb923c, #7c2d12);
+      box-shadow: 0 0 10px rgba(249, 115, 22, 0.7);
+      color: #111827;
+      font-weight: 600;
+    }
+
+    .step.current::after {
+      content: "";
+      position: absolute;
+      inset: 3px;
+      border-radius: 4px;
+      border: 1px solid rgba(250, 204, 21, 0.95);
+      box-shadow: 0 0 10px rgba(250, 204, 21, 1);
+      pointer-events: none;
+    }
+
+    .step-index-row {
+      display: grid;
+      grid-template-columns: repeat(16, 1fr);
+      gap: 4px;
+      font-size: 0.65rem;
+      text-align: center;
+      color: #6b7280;
+      margin-top: 4px;
+    }
+
+    .step-index-row span:nth-child(4n + 1) {
+      color: #f97316;
+      opacity: 1;
+    }
+
+    .footer {
+      margin-top: 10px;
+      font-size: 0.75rem;
+      color: #6b7280;
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .dot {
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      border-radius: 999px;
+      margin-right: 6px;
+    }
+
+    .bass-row {
+      display: grid;
+      grid-template-columns: 120px 1fr;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .bass-label {
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      color: #facc15;
+    }
+
+    .bass-controls {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      font-size: 0.8rem;
+      margin-top: 6px;
+    }
+
+    .bass-controls label {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .bass-controls input[type="range"] {
+      width: 100%;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <h1>Web 303 – Drum Machine + Acid Bass</h1>
+    <div class="subtitle">
+      Multi-track drums • 303-style bass • Vanilla JS + Web Audio
+    </div>
+
+    <div class="controls">
+      <button id="playButton" class="btn">Play</button>
+
+      <div class="tempo-control">
+        <span>BPM</span>
+        <input id="tempoSlider" type="range" min="60" max="180" value="130" />
+        <span id="tempoValue" class="tempo-value">130</span>
+      </div>
+
+      <button id="clearButton" class="btn secondary">Clear all</button>
+    </div>
+
+    <!-- DRUMS -->
+    <div class="section-label">Drum tracks</div>
+    <div id="tracksContainer" class="tracks"></div>
+
+    <!-- BASS -->
+    <div class="section-label">Acid bass</div>
+    <div class="bass-row">
+      <div class="track-info">
+        <div class="bass-label">Bassline</div>
+        <div style="font-size:0.75rem;color:#9ca3af">
+          Click = note • Shift+Click = accent • Alt+Click = slide
+        </div>
+      </div>
+      <div id="bassGrid" class="step-grid"></div>
+    </div>
+
+    <div class="section-label">Bass controls</div>
+    <div class="bass-controls">
+      <label>
+        Cutoff
+        <input id="bassCutoffSlider" type="range" min="200" max="5000" value="1000" />
+      </label>
+      <label>
+        Resonance
+        <input id="bassResSlider" type="range" min="1" max="25" value="12" />
+      </label>
+      <label>
+        Env Mod
+        <input id="bassEnvModSlider" type="range" min="0" max="6000" value="3000" />
+      </label>
+      <label>
+        Decay (ms)
+        <input id="bassDecaySlider" type="range" min="50" max="800" value="350" />
+      </label>
+      <label>
+        Accent
+        <input id="bassAccentSlider" type="range" min="1" max="3" value="1.8" step="0.1" />
+      </label>
+      <label>
+        Slide (ms)
+        <input id="bassSlideSlider" type="range" min="10" max="300" value="80" />
+      </label>
+    </div>
+
+    <div class="step-index-row">
+      <span>1</span><span>2</span><span>3</span><span>4</span>
+      <span>5</span><span>6</span><span>7</span><span>8</span>
+      <span>9</span><span>10</span><span>11</span><span>12</span>
+      <span>13</span><span>14</span><span>15</span><span>16</span>
+    </div>
+
+    <div class="footer">
+      <span>
+        <span class="dot" style="background:#f97316"></span>
+        Slide, accent, filter controls – next: distortion & better timing…
+      </span>
+      <span>MVP v4 – 303-style bass 🎛️</span>
+    </div>
+  </div>
+
+  <script>
+    // ------------- Audio + Sample Handling -------------
+
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    let audioCtx = null;
+    let masterGain = null;
+
+    function ensureAudioContext() {
+      if (!audioCtx) {
+        audioCtx = new AudioContext();
+        masterGain = audioCtx.createGain();
+        masterGain.gain.value = 0.9;
+        masterGain.connect(audioCtx.destination);
+      }
+      if (audioCtx.state === "suspended") {
+        audioCtx.resume();
+      }
+    }
+
+    async function loadSample(url) {
+      ensureAudioContext();
+      const response = await fetch(url);
+      const arrayBuffer = await response.arrayBuffer();
+      return await audioCtx.decodeAudioData(arrayBuffer);
+    }
+
+    function playSampleFromBuffer(buffer, time = 0) {
+      if (!audioCtx || !buffer) return;
+      const src = audioCtx.createBufferSource();
+      src.buffer = buffer;
+      src.connect(masterGain);
+      const when = time || audioCtx.currentTime;
+      src.start(when);
+    }
+
+    // ------------- TB-303-ish Bass Synth -------------
+
+    function midiToFrequency(midiNote) {
+      // standard formula: f = 440 * 2^((n - 69)/12)
+      return 440 * Math.pow(2, (midiNote - 69) / 12);
+    }
+
+    // Bass synth parameters (controlled via UI)
+    let bassCutoff = 1000;      // Hz
+    let bassResonance = 12;     // Q
+    let bassEnvMod = 3000;      // Hz pushed by envelope
+    let bassDecay = 0.35;       // seconds
+    let bassAccentGain = 1.8;   // amplitude multiplier
+    let bassSlideTime = 0.08;   // seconds
+
+    // Monophonic bass voice state
+    const bassVoice = {
+      osc: null,
+      filter: null,
+      gain: null,
+      isActive: false,
+      currentMidi: null
+    };
+
+    function resetBassVoice() {
+      if (bassVoice.isActive && bassVoice.osc && audioCtx) {
+        const now = audioCtx.currentTime;
+        try {
+          bassVoice.osc.stop(now + 0.01);
+        } catch (e) {
+          // ignore if already stopped
+        }
+      }
+      bassVoice.osc = null;
+      bassVoice.filter = null;
+      bassVoice.gain = null;
+      bassVoice.isActive = false;
+      bassVoice.currentMidi = null;
+    }
+
+    function ensureBassVoice(now) {
+      ensureAudioContext();
+      if (!bassVoice.isActive) {
+        const osc = audioCtx.createOscillator();
+        osc.type = "sawtooth";
+
+        const filter = audioCtx.createBiquadFilter();
+        filter.type = "lowpass";
+
+        const gain = audioCtx.createGain();
+        gain.gain.setValueAtTime(0.0001, now);
+
+        osc.connect(filter);
+        filter.connect(gain);
+        gain.connect(masterGain);
+
+        osc.start(now);
+
+        bassVoice.osc = osc;
+        bassVoice.filter = filter;
+        bassVoice.gain = gain;
+        bassVoice.isActive = true;
+      }
+    }
+
+    const bassNoteOptions = [
+      { label: "-",  midi: null },
+      { label: "C3", midi: 48 },
+      { label: "D3", midi: 50 },
+      { label: "E3", midi: 52 },
+      { label: "G3", midi: 55 },
+      { label: "A3", midi: 57 }
+    ];
+
+    const bassSteps = new Array(16).fill(0);        // note index
+    const bassAccent = new Array(16).fill(false);   // accent flags
+    const bassSlide  = new Array(16).fill(false);   // slide flags
+    const bassStepElements = [];
+
+    function triggerBassStep(stepIndex, time = 0) {
+      if (!audioCtx) ensureAudioContext();
+      const now = time || (audioCtx ? audioCtx.currentTime : 0);
+
+      const noteIndex = bassSteps[stepIndex];
+      const noteOpt = bassNoteOptions[noteIndex];
+      const hasNote = noteOpt && noteOpt.midi !== null;
+
+      const isAccent = bassAccent[stepIndex];
+      // Slide flag is stored on the *current* step: "slide into this note from the previous one"
+      const isSlideFromPrev = bassSlide[stepIndex] && bassVoice.currentMidi !== null;
+
+
+      if (!hasNote) {
+        return; // no note to play on this step
+      }
+
+      const targetMidi = noteOpt.midi;
+      const targetFreq = midiToFrequency(targetMidi);
+
+      ensureBassVoice(now);
+
+      const osc = bassVoice.osc;
+      const filter = bassVoice.filter;
+      const gain = bassVoice.gain;
+
+      const baseCutoff = bassCutoff;
+      const envAmount = bassEnvMod;
+      const accentFactor = isAccent ? 1.2 : 1.0;
+
+      filter.Q.setValueAtTime(bassResonance, now);
+
+      if (!isSlideFromPrev || !bassVoice.isActive || bassVoice.currentMidi === null) {
+        // No slide: jump to frequency and retrigger envelopes
+
+        osc.frequency.setValueAtTime(targetFreq, now);
+
+        // Filter envelope: base → peak → back to base
+        const peakCutoff = baseCutoff + envAmount * accentFactor;
+        filter.frequency.cancelScheduledValues(now);
+        filter.frequency.setValueAtTime(baseCutoff, now);
+        filter.frequency.linearRampToValueAtTime(peakCutoff, now + 0.01);
+        filter.frequency.exponentialRampToValueAtTime(baseCutoff, now + bassDecay);
+
+        // Amplitude envelope
+        const peakAmp = isAccent ? bassAccentGain : 1.0;
+        gain.gain.cancelScheduledValues(now);
+        gain.gain.setValueAtTime(0.0001, now);
+        gain.gain.exponentialRampToValueAtTime(peakAmp, now + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + bassDecay);
+      } else {
+        // Slide: glide from previous freq to new freq; don't retrigger env
+        const prevFreq = midiToFrequency(bassVoice.currentMidi);
+        osc.frequency.setValueAtTime(prevFreq, now);
+        osc.frequency.linearRampToValueAtTime(
+          targetFreq,
+          now + bassSlideTime
+        );
+        // Filter & amp envelopes are left as-is (classic 303 slide behavior)
+      }
+
+      bassVoice.currentMidi = targetMidi;
+    }
+
+    // ------------- Drum Track Definitions -------------
+
+    const trackConfigs = [
+      {
+        id: "kick",
+        label: "Kick",
+        color: "#f97316",
+        samples: [
+          { name: "Kick 1", url: "sounds/TR-808/Kick/Kick01.wav" },
+          { name: "Kick 2", url: "sounds/TR-808/Kick/Kick02.wav" }
+        ]
+      },
+      {
+        id: "snare",
+        label: "Snare",
+        color: "#22d3ee",
+        samples: [
+          { name: "Snare 1", url: "sounds/TR-808/Snare/Snare01.wav" },
+          { name: "Snare 2", url: "sounds/TR-808/Snare/Snare02.wav" }
+        ]
+      },
+      {
+        id: "closed hat",
+        label: "Closed Hat",
+        color: "#a855f7",
+        samples: [
+          { name: "Closed Hat 1", url: "sounds/TR-808/ClosedHiHat/ClosedHat01.wav" },
+          { name: "Closed Hat 2", url: "sounds/TR-808/ClosedHiHat/ClosedHat02.wav" }
+        ]
+      }
+    ];
+
+    const tracks = trackConfigs.map(config => ({
+      ...config,
+      steps: new Array(16).fill(false),
+      buffers: new Array(config.samples.length).fill(null),
+      selectedSampleIndex: 0,
+      stepElements: [],
+      selectElement: null
+    }));
+
+    async function preloadAllSamples() {
+      for (const track of tracks) {
+        for (let i = 0; i < track.samples.length; i++) {
+          try {
+            const buffer = await loadSample(track.samples[i].url);
+            track.buffers[i] = buffer;
+            console.log(`Loaded sample: ${track.label} – ${track.samples[i].name}`);
+          } catch (err) {
+            console.warn(`Could not load sample for ${track.id}`, err);
+          }
+        }
+      }
+    }
+
+    // ------------- UI Construction -------------
+
+    const tracksContainer = document.getElementById("tracksContainer");
+    const bassGrid = document.getElementById("bassGrid");
+    const playButton = document.getElementById("playButton");
+    const tempoSlider = document.getElementById("tempoSlider");
+    const tempoValue = document.getElementById("tempoValue");
+    const clearButton = document.getElementById("clearButton");
+
+    const cutoffSlider = document.getElementById("bassCutoffSlider");
+    const resSlider = document.getElementById("bassResSlider");
+    const envModSlider = document.getElementById("bassEnvModSlider");
+    const decaySlider = document.getElementById("bassDecaySlider");
+    const accentSlider = document.getElementById("bassAccentSlider");
+    const slideSlider = document.getElementById("bassSlideSlider");
+
+    // Drums UI
+    for (const track of tracks) {
+      const row = document.createElement("div");
+      row.classList.add("track-row");
+
+      const infoColumn = document.createElement("div");
+      infoColumn.classList.add("track-info");
+
+      const labelEl = document.createElement("div");
+      labelEl.classList.add("track-label");
+      labelEl.textContent = track.label;
+      labelEl.style.color = track.color;
+
+      const sampleSelect = document.createElement("select");
+      sampleSelect.classList.add("sample-select");
+      track.samples.forEach((s, idx) => {
+        const opt = document.createElement("option");
+        opt.value = idx;
+        opt.textContent = s.name;
+        sampleSelect.appendChild(opt);
+      });
+      sampleSelect.addEventListener("change", () => {
+        track.selectedSampleIndex = Number(sampleSelect.value);
+      });
+      track.selectElement = sampleSelect;
+
+      infoColumn.appendChild(labelEl);
+      infoColumn.appendChild(sampleSelect);
+
+      const stepGrid = document.createElement("div");
+      stepGrid.classList.add("step-grid");
+
+      for (let stepIndex = 0; stepIndex < 16; stepIndex++) {
+        const stepEl = document.createElement("div");
+        stepEl.classList.add("step");
+        stepEl.dataset.trackId = track.id;
+        stepEl.dataset.stepIndex = stepIndex;
+
+        stepEl.addEventListener("click", () => {
+          const idx = stepIndex;
+          track.steps[idx] = !track.steps[idx];
+          stepEl.classList.toggle("on", track.steps[idx]);
+        });
+
+        stepGrid.appendChild(stepEl);
+        track.stepElements.push(stepEl);
+      }
+
+      row.appendChild(infoColumn);
+      row.appendChild(stepGrid);
+      tracksContainer.appendChild(row);
+    }
+
+    // Bass UI
+    for (let i = 0; i < 16; i++) {
+      const stepEl = document.createElement("div");
+      stepEl.classList.add("step");
+      stepEl.textContent = bassNoteOptions[bassSteps[i]].label;
+
+      stepEl.addEventListener("click", (e) => {
+        // Shift+Click = toggle accent
+        if (e.shiftKey) {
+          bassAccent[i] = !bassAccent[i];
+          stepEl.style.textDecoration = bassAccent[i] ? "underline" : "none";
+          return;
+        }
+
+        // Alt+Click = toggle slide
+        if (e.altKey) {
+          bassSlide[i] = !bassSlide[i];
+          stepEl.style.fontStyle = bassSlide[i] ? "italic" : "normal";
+          return;
+        }
+
+        // Plain click = cycle note
+        bassSteps[i] = (bassSteps[i] + 1) % bassNoteOptions.length;
+        const opt = bassNoteOptions[bassSteps[i]];
+        stepEl.textContent = opt.label;
+
+        const isOn = opt.midi !== null;
+        stepEl.classList.toggle("on", isOn);
+      });
+
+        // Right-click = clear note, accent & slide
+        stepEl.addEventListener("contextmenu", (e) => {
+        e.preventDefault();
+        bassSteps[i] = 0;
+        bassAccent[i] = false;
+        bassSlide[i] = false;
+
+        stepEl.textContent = bassNoteOptions[0].label;
+        stepEl.classList.remove("on");
+        stepEl.style.textDecoration = "none";
+        stepEl.style.fontStyle = "normal";
+      });
+
+
+      bassGrid.appendChild(stepEl);
+      bassStepElements.push(stepEl);
+    }
+
+    // Bass controls UI bindings
+    cutoffSlider.addEventListener("input", () => {
+      bassCutoff = Number(cutoffSlider.value);
+    });
+    resSlider.addEventListener("input", () => {
+      bassResonance = Number(resSlider.value);
+    });
+    envModSlider.addEventListener("input", () => {
+      bassEnvMod = Number(envModSlider.value);
+    });
+    decaySlider.addEventListener("input", () => {
+      bassDecay = Number(decaySlider.value) / 1000; // ms -> seconds
+    });
+    accentSlider.addEventListener("input", () => {
+      bassAccentGain = Number(accentSlider.value);
+    });
+    slideSlider.addEventListener("input", () => {
+      bassSlideTime = Number(slideSlider.value) / 1000; // ms -> seconds
+    });
+
+    // ------------- Sequencer State -------------
+
+    let currentStep = 0;
+    let isPlaying = false;
+    let tempo = Number(tempoSlider.value);
+    let intervalId = null;
+
+    tempoSlider.addEventListener("input", () => {
+      tempo = Number(tempoSlider.value);
+      tempoValue.textContent = tempo.toString();
+
+      if (isPlaying) {
+        stopSequencer();
+        startSequencer();
+      }
+    });
+
+    clearButton.addEventListener("click", () => {
+      // clear drums
+      for (const track of tracks) {
+        track.steps.fill(false);
+        for (const stepEl of track.stepElements) {
+          stepEl.classList.remove("on");
+        }
+      }
+      // clear bass notes, accents, slides
+      for (let i = 0; i < 16; i++) {
+        bassSteps[i] = 0;
+        bassAccent[i] = false;
+        bassSlide[i] = false;
+        const stepEl = bassStepElements[i];
+        stepEl.textContent = bassNoteOptions[0].label;
+        stepEl.classList.remove("on");
+        stepEl.style.textDecoration = "none";
+        stepEl.style.fontStyle = "normal";
+      }
+      resetBassVoice();
+    });
+
+    function scheduleStep() {
+      // Remove highlight from current step in all tracks + bass
+      for (const track of tracks) {
+        track.stepElements[currentStep].classList.remove("current");
+      }
+      bassStepElements[currentStep].classList.remove("current");
+
+      currentStep = (currentStep + 1) % 16;
+
+      // Highlight new step
+      for (const track of tracks) {
+        track.stepElements[currentStep].classList.add("current");
+      }
+      bassStepElements[currentStep].classList.add("current");
+
+      // Drums
+      for (const track of tracks) {
+        if (track.steps[currentStep]) {
+          const buffer = track.buffers[track.selectedSampleIndex];
+          if (buffer) {
+            playSampleFromBuffer(buffer);
+          } else {
+            console.warn(`No buffer loaded for ${track.id} sample index ${track.selectedSampleIndex}`);
+          }
+        }
+      }
+
+      // Bass
+      triggerBassStep(currentStep);
+    }
+
+    function startSequencer() {
+      if (isPlaying) return;
+      ensureAudioContext();
+      isPlaying = true;
+      playButton.textContent = "Stop";
+
+      preloadAllSamples(); // fire & forget
+
+      const intervalMs = (60_000 / tempo) / 4; // 16th notes
+      intervalId = setInterval(scheduleStep, intervalMs);
+    }
+
+    function stopSequencer() {
+      isPlaying = false;
+      playButton.textContent = "Play";
+      if (intervalId) clearInterval(intervalId);
+      intervalId = null;
+
+      // Remove highlights
+      for (const track of tracks) {
+        track.stepElements[currentStep].classList.remove("current");
+      }
+      bassStepElements[currentStep].classList.remove("current");
+      currentStep = 0;
+
+      resetBassVoice();
+    }
+
+    playButton.addEventListener("click", () => {
+      if (isPlaying) {
+        stopSequencer();
+      } else {
+        startSequencer();
+      }
+    });
+  </script>
+</body>
+</html>
