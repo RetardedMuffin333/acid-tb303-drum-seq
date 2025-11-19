@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Web 303 – Drum Machine + Acid Bass</title>
+  <title>ACID-808 – Drum & Bassline Machine</title>
   <style>
     :root {
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -21,77 +21,343 @@
     .app {
       background: radial-gradient(circle at top left, #1f2937, #020617);
       border-radius: 18px;
-      padding: 24px 28px 18px;
+      padding: 18px 24px 16px;
       box-shadow:
-        0 30px 80px rgba(0, 0, 0, 0.8),
+        0 24px 60px rgba(0, 0, 0, 0.9),
         0 0 0 1px rgba(15, 23, 42, 0.7);
-      max-width: 950px;
+      max-width: 980px;
       width: 100%;
     }
 
-    h1 {
-      margin: 0 0 4px;
-      font-size: 1.4rem;
-      letter-spacing: 0.08em;
+    /* ----- TOP BAR ----- */
+
+    .top-bar {
+      display: grid;
+      grid-template-columns: 1.4fr 1.6fr 1fr;
+      gap: 16px;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-title {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .brand-title h1 {
+      margin: 0;
+      font-size: 1.25rem;
+      letter-spacing: 0.12em;
       text-transform: uppercase;
       color: #f97316;
     }
 
-    .subtitle {
-      margin-bottom: 18px;
-      font-size: 0.9rem;
+    .brand-subtitle {
+      font-size: 0.7rem;
       color: #9ca3af;
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
     }
 
-    .controls {
+    .acid-smiley {
+      width: 38px;
+      height: 38px;
+      border-radius: 999px;
+      background: radial-gradient(circle at 30% 30%, #facc15, #b45309);
+      position: relative;
+      box-shadow: 0 0 12px rgba(250, 204, 21, 0.9);
+      overflow: hidden;
+    }
+
+    .acid-smiley::before,
+    .acid-smiley::after {
+      content: "";
+      position: absolute;
+      background: #111827;
+      border-radius: 999px;
+    }
+
+    .acid-smiley::before {
+      width: 6px;
+      height: 6px;
+      top: 10px;
+      left: 9px;
+    }
+
+    .acid-smiley::after {
+      width: 6px;
+      height: 6px;
+      top: 10px;
+      right: 9px;
+    }
+
+    .acid-smiley-mouth {
+      position: absolute;
+      left: 7px;
+      right: 7px;
+      bottom: 8px;
+      height: 9px;
+      border-radius: 0 0 16px 16px;
+      border: 2px solid #111827;
+      border-top: none;
+    }
+
+    .acid-smiley-drip {
+      position: absolute;
+      width: 5px;
+      height: 12px;
+      background: #facc15;
+      left: 60%;
+      bottom: -3px;
+      border-radius: 999px;
+      box-shadow: 0 0 6px rgba(250, 204, 21, 0.7);
+    }
+
+    .transport {
       display: flex;
       align-items: center;
-      justify-content: space-between;
-      margin-bottom: 18px;
-      gap: 16px;
-      flex-wrap: wrap;
+      gap: 18px;
+      justify-content: center;
     }
 
-    .btn {
+    /* TR-style Start/Stop button */
+    .start-stop {
       border: none;
       border-radius: 999px;
-      padding: 8px 18px;
-      font-size: 0.95rem;
-      font-weight: 600;
+      padding: 8px 22px;
+      font-size: 0.9rem;
+      font-weight: 700;
       cursor: pointer;
-      background: #f97316;
+      background: radial-gradient(circle at 30% 30%, #fb923c, #c2410c);
       color: #111827;
-      transition: transform 0.07s ease, box-shadow 0.07s ease, background 0.15s;
-      box-shadow: 0 4px 0 #b45309;
+      box-shadow:
+        0 0 0 1px #7c2d12,
+        0 4px 0 #7c2d12,
+        0 8px 18px rgba(0, 0, 0, 0.9);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
     }
 
-    .btn:active {
+    .start-stop:active {
       transform: translateY(2px);
-      box-shadow: 0 2px 0 #b45309;
+      box-shadow:
+        0 0 0 1px #7c2d12,
+        0 2px 0 #7c2d12,
+        0 4px 10px rgba(0, 0, 0, 0.9);
     }
 
-    .btn.secondary {
-      background: #374151;
+    .start-stop-indicator {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: radial-gradient(circle at 30% 30%, #fecaca, #7f1d1d);
+      box-shadow: 0 0 0 rgba(248, 113, 113, 0);
+      transition: box-shadow 0.15s, background 0.15s;
+    }
+
+    .start-stop-indicator.active {
+      background: radial-gradient(circle at 30% 30%, #f87171, #7f1d1d);
+      box-shadow: 0 0 10px rgba(248, 113, 113, 0.9);
+    }
+
+    .clear-btn {
+      border: none;
+      border-radius: 999px;
+      padding: 6px 14px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      cursor: pointer;
+      background: #111827;
       color: #e5e7eb;
-      box-shadow: 0 4px 0 #020617;
+      box-shadow:
+        0 0 0 1px #374151,
+        0 3px 0 #020617;
     }
 
-    .tempo-control {
+    .clear-btn:active {
+      transform: translateY(1px);
+      box-shadow:
+        0 0 0 1px #374151,
+        0 1px 0 #020617;
+    }
+
+    .tempo-block {
       display: flex;
       align-items: center;
-      gap: 8px;
-      font-size: 0.9rem;
+      gap: 10px;
     }
 
-    .tempo-control input[type="range"] {
-      width: 170px;
+    /* Knobs (shared) */
+
+    .knob-control {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.8rem;
     }
 
-    .tempo-value {
-      min-width: 40px;
+    .knob-with-ticks {
+      align-items: center;
+    }
+
+    .knob-ring {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background:
+        radial-gradient(circle at 50% 50%, #020617 50%, transparent 52%),
+        repeating-conic-gradient(
+          from -90deg,
+          #4b5563 0deg 2deg,
+          transparent 2deg 12deg
+        );
+      border: 1px solid #4b5563;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.9);
+    }
+
+    .knob {
+      width: 40px;
+      height: 40px;
+      border-radius: 999px;
+      border: 2px solid #9ca3af;
+      background: radial-gradient(circle at 30% 30%, #e5e7eb, #6b7280);
+      position: relative;
+      cursor: pointer;
+      transform: rotate(0deg);
+      transition: transform 0.03s linear;
+      box-shadow:
+        inset 0 2px 4px rgba(255, 255, 255, 0.5),
+        0 4px 8px rgba(0, 0, 0, 0.8);
+    }
+
+    .knob::after {
+      content: "";
+      position: absolute;
+      width: 2px;
+      height: 11px;
+      background: #111827;
+      top: 4px;
+      left: 50%;
+      transform: translateX(-50%);
+      border-radius: 999px;
+      box-shadow: 0 0 3px rgba(0, 0, 0, 0.8);
+    }
+
+    .knob-label {
+      color: #e5e7eb;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      font-size: 0.7rem;
+    }
+
+    /* 7-seg tempo display */
+
+    .digit-display {
+      min-width: 74px;
+      padding: 6px 10px;
+      border-radius: 5px;
+      background:
+        linear-gradient(#6b7280, #111827);
+      border: 1px solid #111827;
+      box-shadow:
+        inset 0 0 10px rgba(0, 0, 0, 0.9),
+        0 1px 2px rgba(255, 255, 255, 0.15);
+      font-family: "Share Tech Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 1rem;
       text-align: right;
-      font-variant-numeric: tabular-nums;
+      color: #f97316;
+      text-shadow:
+        0 0 6px rgba(249, 115, 22, 0.8),
+        0 0 10px rgba(249, 115, 22, 0.5);
     }
+
+    .digit-label {
+      font-size: 0.7rem;
+      color: #9ca3af;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      text-align: right;
+      margin-top: 2px;
+    }
+
+    .pattern-controls {
+      font-size: 0.8rem;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      align-items: flex-end;
+    }
+
+    .pattern-mode {
+      display: inline-flex;
+      border-radius: 999px;
+      border: 1px solid #4b5563;
+      overflow: hidden;
+    }
+
+    .pattern-mode button {
+      border: none;
+      padding: 4px 10px;
+      font-size: 0.75rem;
+      background: #020617;
+      color: #9ca3af;
+      cursor: pointer;
+    }
+
+    .pattern-mode button.active {
+      background: #f97316;
+      color: #111827;
+    }
+
+    .pattern-banks {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .pattern-banks span {
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      color: #9ca3af;
+      font-size: 0.7rem;
+    }
+
+    .pattern-button {
+      width: 22px;
+      height: 22px;
+      border-radius: 999px;
+      border: 1px solid #4b5563;
+      background: #020617;
+      color: #e5e7eb;
+      cursor: pointer;
+      font-size: 0.7rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .pattern-button.active {
+      background: #f97316;
+      border-color: #f97316;
+      color: #111827;
+      box-shadow: 0 0 8px rgba(249, 115, 22, 0.7);
+    }
+
+    /* ----- SECTION LABELS ----- */
 
     .section-label {
       font-size: 0.8rem;
@@ -99,13 +365,60 @@
       letter-spacing: 0.16em;
       color: #9ca3af;
       margin-bottom: 6px;
-      margin-top: 10px;
+      margin-top: 8px;
+    }
+
+    /* ----- DRUM SECTION ----- */
+
+    .step-indicator-row {
+      display: grid;
+      grid-template-columns: 120px repeat(16, 1fr);
+      gap: 4px;
+      align-items: center;
+      margin-bottom: 6px;
+      font-size: 0.7rem;
+      color: #9ca3af;
+    }
+
+    .step-indicator-label {
+      text-align: right;
+      padding-right: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+    }
+
+    .step-indicator-cell {
+      text-align: center;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+    }
+
+    .step-led {
+      width: 9px;
+      height: 9px;
+      border-radius: 999px;
+      border: 1px solid #7f1d1d;
+      background: radial-gradient(circle at 30% 30%, #450a0a, #020617);
+      box-shadow: 0 0 0 rgba(220, 38, 38, 0);
+      transition: box-shadow 0.1s, background 0.1s;
+    }
+
+    .step-led.active {
+      background: radial-gradient(circle at 30% 30%, #ef4444, #7f1d1d);
+      box-shadow: 0 0 10px rgba(239, 68, 68, 0.9);
+    }
+
+    .step-indicator-index {
+      opacity: 0.7;
     }
 
     .tracks {
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 6px;
       margin-bottom: 4px;
     }
 
@@ -119,24 +432,15 @@
     .track-info {
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 2px;
       font-size: 0.8rem;
     }
 
     .track-label {
-      font-size: 0.85rem;
+      font-size: 0.82rem;
       text-transform: uppercase;
       letter-spacing: 0.14em;
       color: #d1d5db;
-    }
-
-    .sample-select {
-      font-size: 0.8rem;
-      padding: 2px 6px;
-      border-radius: 999px;
-      border: 1px solid #4b5563;
-      background: #020617;
-      color: #e5e7eb;
     }
 
     .step-grid {
@@ -147,81 +451,77 @@
 
     .step {
       width: 100%;
-      aspect-ratio: 1 / 1;
-      border-radius: 6px;
-      border: 1px solid #374151;
-      background: radial-gradient(circle at 30% 30%, #374151, #020617);
+      height: 22px;
+      border-radius: 4px;
+      border: 1px solid #111827;
       cursor: pointer;
       position: relative;
       transition:
         transform 0.07s ease,
         box-shadow 0.07s ease,
         border-color 0.1s,
-        background 0.1s;
+        filter 0.1s;
       display: flex;
       align-items: center;
       justify-content: center;
       font-size: 0.7rem;
-      color: #9ca3af;
+      color: transparent;
       user-select: none;
+    }
+
+    /* TR-style color strip */
+    .step-grid .step:nth-child(1),
+    .step-grid .step:nth-child(2),
+    .step-grid .step:nth-child(3),
+    .step-grid .step:nth-child(4) {
+      background: linear-gradient(#7f1d1d, #451717);
+    }
+
+    .step-grid .step:nth-child(5),
+    .step-grid .step:nth-child(6),
+    .step-grid .step:nth-child(7),
+    .step-grid .step:nth-child(8) {
+      background: linear-gradient(#9a3412, #78350f);
+    }
+
+    .step-grid .step:nth-child(9),
+    .step-grid .step:nth-child(10),
+    .step-grid .step:nth-child(11),
+    .step-grid .step:nth-child(12) {
+      background: linear-gradient(#854d0e, #713f12);
+    }
+
+    .step-grid .step:nth-child(13),
+    .step-grid .step:nth-child(14),
+    .step-grid .step:nth-child(15),
+    .step-grid .step:nth-child(16) {
+      background: linear-gradient(#e5e7eb, #9ca3af);
     }
 
     .step.on {
       border-color: #f97316;
-      background: radial-gradient(circle at 30% 30%, #fb923c, #7c2d12);
-      box-shadow: 0 0 10px rgba(249, 115, 22, 0.7);
-      color: #111827;
-      font-weight: 600;
+      filter: brightness(1.25);
+      box-shadow: 0 0 8px rgba(249, 115, 22, 0.7);
     }
 
     .step.current::after {
       content: "";
       position: absolute;
-      inset: 3px;
-      border-radius: 4px;
+      inset: 2px;
+      border-radius: 3px;
       border: 1px solid rgba(250, 204, 21, 0.95);
-      box-shadow: 0 0 10px rgba(250, 204, 21, 1);
+      box-shadow: 0 0 8px rgba(250, 204, 21, 0.9);
       pointer-events: none;
     }
 
-    .step-index-row {
-      display: grid;
-      grid-template-columns: repeat(16, 1fr);
-      gap: 4px;
-      font-size: 0.65rem;
-      text-align: center;
-      color: #6b7280;
-      margin-top: 4px;
-    }
-
-    .step-index-row span:nth-child(4n + 1) {
-      color: #f97316;
-      opacity: 1;
-    }
-
-    .footer {
-      margin-top: 10px;
-      font-size: 0.75rem;
-      color: #6b7280;
-      display: flex;
-      justify-content: space-between;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-
-    .dot {
-      display: inline-block;
-      width: 6px;
-      height: 6px;
-      border-radius: 999px;
-      margin-right: 6px;
-    }
+    /* ----- BASS SECTION ----- */
 
     .bass-row {
       display: grid;
       grid-template-columns: 120px 1fr;
       gap: 10px;
       align-items: center;
+      margin-top:10px;
     }
 
     .bass-label {
@@ -231,578 +531,835 @@
       color: #facc15;
     }
 
-    .bass-controls {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 10px;
-      font-size: 0.8rem;
-      margin-top: 6px;
+    .bass-bottom-row {
+      margin-top: 30px;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 24px;
     }
 
-    .bass-controls label {
+    .bass-controls {
+      margin-top: 30px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: flex-end;
+      min-width: 260px;
+    }
+
+    .knob-range {
+      font-size: 0.65rem;
+      color: #9ca3af;
+      margin-top: 2px;
+    }
+
+
+    /* Mini keyboard TB-style */
+
+    .mini-keyboard {
+      margin-top: 8px;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;   /* shifted left */
+      gap: 12px;
+      flex: 1;
+    }
+
+    .mini-left {
       display: flex;
       flex-direction: column;
+      align-items: center;
       gap: 4px;
+      font-size: 0.7rem;
+      color: #9ca3af;
     }
 
-    .bass-controls input[type="range"] {
-      width: 100%;
+    .generate-label {
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+    }
+
+    .oct-left {
+      display: flex;
+      flex-direction: column;        /* + on top, - below */
+      align-items: center;
+      gap: 4px;
+      font-size: 0.75rem;
+      color: #9ca3af;
+    }
+
+    .keys {
+      position: relative;
+      width: 340px;                  /* enlarged piano */
+      aspect-ratio: 16 / 7;
+      padding: 4px 6px;
+      border-radius: 6px;
+      background: #042057;
+      box-shadow:
+        inset 0 0 4px rgba(0, 0, 0, 0.4),
+        0 2px 6px rgba(0, 0, 0, 0.7);
+      display: flex;
+      justify-content: space-between;
+    }
+
+
+    .key {
+      position: relative;
+      flex: 1;
+      max-width: 28px;
+      height: 56px;           /* bigger keys */
+      margin: 0 2px;
+      border-radius: 3px;
+      border: 1px solid #6b7280;
+      cursor: pointer;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.4);
+      user-select: none;
+      transition: transform 0.08s ease;
+    }
+
+    .key.white {
+      background: linear-gradient(#f9fafb, #9ca3af);
+      transform: translateY(50px);      /* pushed slightly down */
+    }
+
+    .key.black {
+      background: linear-gradient(#111827, #020617);
+      transform: translateY(28px);    /* shifted up ~40% of height */
+    }
+
+    /* we don't need the old black insert any more */
+    .key::before {
+      content: none;
+    }
+
+    .key.black .key-label {
+      color: #e5e7eb;
+    }
+
+    /* red LED */
+    .key::after {
+      content: "";
+      position: absolute;
+      top: 4px;
+      right: 5px;
+      width: 4px;
+      height: 4px;
+      border-radius: 999px;
+      background: radial-gradient(circle at 30% 30%, #7f1d1d, #020617);
+      box-shadow: 0 0 0 rgba(239, 68, 68, 0);
+    }
+
+    .key.selected::after {
+      background: radial-gradient(circle at 30% 30%, #ef4444, #7f1d1d);
+      box-shadow: 0 0 6px rgba(239, 68, 68, 0.8);
+    }
+
+    .key-label {
+      position: absolute;
+      bottom: 3px;
+      left: 0;
+      right: 0;
+      text-align: center;
+      font-size: 0.55rem;
+      text-transform: uppercase;
+      pointer-events: none;
+      color: #111827;
+    }
+
+    /* Random smiley button */
+
+    .acid-random-btn {
+      border: none;
+      background: transparent;
+      padding: 0;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+    }
+
+    .random-smiley {
+      width: 26px;
+      height: 26px;
+      border-radius: 999px;
+      background: radial-gradient(circle at 30% 30%, #facc15, #b45309);
+      position: relative;
+      box-shadow: 0 0 8px rgba(250, 204, 21, 0.8);
+      overflow: hidden;
+    }
+
+    .random-smiley::before,
+    .random-smiley::after {
+      content: "";
+      position: absolute;
+      background: #111827;
+      border-radius: 999px;
+      width: 4px;
+      height: 4px;
+      top: 7px;
+    }
+
+    .random-smiley::before {
+      left: 7px;
+    }
+
+    .random-smiley::after {
+      right: 7px;
+    }
+
+    .random-smiley-mouth {
+      position: absolute;
+      left: 6px;
+      right: 6px;
+      bottom: 6px;
+      height: 7px;
+      border-radius: 0 0 10px 10px;
+      border: 1.5px solid #111827;
+      border-top: none;
+    }
+
+    /* Bottom hint */
+
+    .bass-hint-global {
+      margin-top: 10px;
+      font-size: 0.75rem;
+      color: #9ca3af;
+      text-align: center;
     }
   </style>
 </head>
 <body>
   <div class="app">
-    <h1>Web 303 – Drum Machine + Acid Bass</h1>
-    <div class="subtitle">
-      Multi-track drums • 303-style bass • Vanilla JS + Web Audio
-    </div>
-
-    <div class="controls">
-      <button id="playButton" class="btn">Play</button>
-
-      <div class="tempo-control">
-        <span>BPM</span>
-        <input id="tempoSlider" type="range" min="60" max="180" value="130" />
-        <span id="tempoValue" class="tempo-value">130</span>
+    <!-- TOP BAR -->
+    <div class="top-bar">
+      <div class="brand">
+        <div class="acid-smiley">
+          <div class="acid-smiley-mouth"></div>
+          <div class="acid-smiley-drip"></div>
+        </div>
+        <div class="brand-title">
+          <h1>ACID-808</h1>
+          <div class="brand-subtitle">TR-style drums • TB-style bass</div>
+        </div>
       </div>
 
-      <button id="clearButton" class="btn secondary">Clear all</button>
+      <div class="transport">
+        <button class="start-stop" id="startStopButton">
+          <div class="start-stop-indicator" id="startStopLed"></div>
+          <span id="startStopLabel">Start</span>
+        </button>
+
+        <button class="clear-btn" id="clearButton">Clear all</button>
+
+        <div class="tempo-block">
+          <div class="knob-control">
+            <div class="knob-ring">
+              <div
+                class="knob"
+                id="knob-tempo"
+                data-min="60"
+                data-max="180"
+                data-value="130"
+              ></div>
+            </div>
+          </div>
+          <div>
+            <div class="digit-display" id="tempoValue">130.0</div>
+            <div class="digit-label">BPM</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="pattern-controls">
+        <div class="pattern-mode">
+          <button id="patternModeBtn" class="active">Pattern</button>
+          <button id="songModeBtn">Song</button>
+        </div>
+        <div class="pattern-banks">
+          <span>PATTERN</span>
+          <button class="pattern-button active" data-pattern="1">1</button>
+          <button class="pattern-button" data-pattern="2">2</button>
+          <button class="pattern-button" data-pattern="3">3</button>
+          <button class="pattern-button" data-pattern="4">4</button>
+        </div>
+      </div>
     </div>
 
-    <!-- DRUMS -->
-    <div class="section-label">Drum tracks</div>
+    <!-- DRUM SECTION -->
+    <div class="section-label">Drum Sequencer</div>
+
+    <div class="step-indicator-row">
+      <div class="step-indicator-label">Step</div>
+      <!-- 16 step indicator cells -->
+      <div class="step-indicator-cell" data-step="0">
+        <div class="step-indicator-index">1</div>
+        <div class="step-led"></div>
+      </div>
+      <div class="step-indicator-cell" data-step="1">
+        <div class="step-indicator-index">2</div>
+        <div class="step-led"></div>
+      </div>
+      <div class="step-indicator-cell" data-step="2">
+        <div class="step-indicator-index">3</div>
+        <div class="step-led"></div>
+      </div>
+      <div class="step-indicator-cell" data-step="3">
+        <div class="step-indicator-index">4</div>
+        <div class="step-led"></div>
+      </div>
+      <div class="step-indicator-cell" data-step="4">
+        <div class="step-indicator-index">5</div>
+        <div class="step-led"></div>
+      </div>
+      <div class="step-indicator-cell" data-step="5">
+        <div class="step-indicator-index">6</div>
+        <div class="step-led"></div>
+      </div>
+      <div class="step-indicator-cell" data-step="6">
+        <div class="step-indicator-index">7</div>
+        <div class="step-led"></div>
+      </div>
+      <div class="step-indicator-cell" data-step="7">
+        <div class="step-indicator-index">8</div>
+        <div class="step-led"></div>
+      </div>
+      <div class="step-indicator-cell" data-step="8">
+        <div class="step-indicator-index">9</div>
+        <div class="step-led"></div>
+      </div>
+      <div class="step-indicator-cell" data-step="9">
+        <div class="step-indicator-index">10</div>
+        <div class="step-led"></div>
+      </div>
+      <div class="step-indicator-cell" data-step="10">
+        <div class="step-indicator-index">11</div>
+        <div class="step-led"></div>
+      </div>
+      <div class="step-indicator-cell" data-step="11">
+        <div class="step-indicator-index">12</div>
+        <div class="step-led"></div>
+      </div>
+      <div class="step-indicator-cell" data-step="12">
+        <div class="step-indicator-index">13</div>
+        <div class="step-led"></div>
+      </div>
+      <div class="step-indicator-cell" data-step="13">
+        <div class="step-indicator-index">14</div>
+        <div class="step-led"></div>
+      </div>
+      <div class="step-indicator-cell" data-step="14">
+        <div class="step-indicator-index">15</div>
+        <div class="step-led"></div>
+      </div>
+      <div class="step-indicator-cell" data-step="15">
+        <div class="step-indicator-index">16</div>
+        <div class="step-led"></div>
+      </div>
+    </div>
+
     <div id="tracksContainer" class="tracks"></div>
 
-    <!-- BASS -->
-    <div class="section-label">Acid bass</div>
+    <!-- BASS SECTION -->
+    <div class="section-label">Acid Bassline</div>
     <div class="bass-row">
       <div class="track-info">
         <div class="bass-label">Bassline</div>
-        <div style="font-size:0.75rem;color:#9ca3af">
-          Click = note • Shift+Click = accent • Alt+Click = slide
-        </div>
       </div>
       <div id="bassGrid" class="step-grid"></div>
     </div>
 
-    <div class="section-label">Bass controls</div>
-    <div class="bass-controls">
-      <label>
-        Cutoff
-        <input id="bassCutoffSlider" type="range" min="200" max="5000" value="1000" />
-      </label>
-      <label>
-        Resonance
-        <input id="bassResSlider" type="range" min="1" max="25" value="12" />
-      </label>
-      <label>
-        Env Mod
-        <input id="bassEnvModSlider" type="range" min="0" max="6000" value="3000" />
-      </label>
-      <label>
-        Decay (ms)
-        <input id="bassDecaySlider" type="range" min="50" max="800" value="350" />
-      </label>
-      <label>
-        Accent
-        <input id="bassAccentSlider" type="range" min="1" max="3" value="1.8" step="0.1" />
-      </label>
-      <label>
-        Slide (ms)
-        <input id="bassSlideSlider" type="range" min="10" max="300" value="80" />
-      </label>
+    <!-- Piano + octave + random + knobs in one row -->
+    <div class="bass-bottom-row">
+      <div class="mini-keyboard">
+        <div class="mini-left">
+          <button class="acid-random-btn" id="randomBassBtn" title="Random acid bassline">
+            <div class="random-smiley">
+              <div class="random-smiley-mouth"></div>
+            </div>
+          </button>
+          <div class="generate-label">Generate bassline</div>
+        </div>
+
+        <div class="oct-left">
+          <button class="oct-btn" id="octUp">▲</button>
+          <span class="oct-label" id="octLabel">Oct 3</span>
+          <button class="oct-btn" id="octDown">▼</button>
+        </div>
+
+        <div class="keys" id="keyboardKeys"></div>
+      </div>
+
+      <!-- Bass knobs row -->
+      <div class="bass-controls">
+        <div class="knob-control knob-with-ticks">
+          <div class="knob-ring">
+            <div class="knob" id="knob-cutoff" data-min="200" data-max="5000" data-value="1000"></div>
+          </div>
+          <div class="knob-label">Cutoff</div>
+          <div class="knob-range">200–5000 Hz</div>
+        </div>
+
+        <div class="knob-control knob-with-ticks">
+          <div class="knob-ring">
+            <div class="knob" id="knob-res" data-min="1" data-max="25" data-value="12"></div>
+          </div>
+          <div class="knob-label">Resonance</div>
+          <div class="knob-range">1–25</div>
+        </div>
+
+        <div class="knob-control knob-with-ticks">
+          <div class="knob-ring">
+            <div class="knob" id="knob-envmod" data-min="0" data-max="6000" data-value="3000"></div>
+          </div>
+          <div class="knob-label">Env Mod</div>
+          <div class="knob-range">0–6000</div>
+        </div>
+
+        <div class="knob-control knob-with-ticks">
+          <div class="knob-ring">
+            <div class="knob" id="knob-decay" data-min="50" data-max="800" data-value="350"></div>
+          </div>
+          <div class="knob-label">Decay</div>
+          <div class="knob-range">50–800 ms</div>
+        </div>
+
+        <div class="knob-control knob-with-ticks">
+          <div class="knob-ring">
+            <div class="knob" id="knob-accent" data-min="1" data-max="3" data-value="2"></div>
+          </div>
+          <div class="knob-label">Accent</div>
+          <div class="knob-range">1–3</div>
+        </div>
+
+        <div class="knob-control knob-with-ticks">
+          <div class="knob-ring">
+            <div class="knob" id="knob-slide" data-min="10" data-max="300" data-value="80"></div>
+          </div>
+          <div class="knob-label">Slide</div>
+          <div class="knob-range">10–300 ms</div>
+        </div>
+      </div>
     </div>
 
-    <div class="step-index-row">
-      <span>1</span><span>2</span><span>3</span><span>4</span>
-      <span>5</span><span>6</span><span>7</span><span>8</span>
-      <span>9</span><span>10</span><span>11</span><span>12</span>
-      <span>13</span><span>14</span><span>15</span><span>16</span>
-    </div>
-
-    <div class="footer">
-      <span>
-        <span class="dot" style="background:#f97316"></span>
-        Slide, accent, filter controls – next: distortion & better timing…
-      </span>
-      <span>MVP v4 – 303-style bass 🎛️</span>
+    <div class="bass-hint-global">
+      Click = note • Shift+Click = accent • Alt+Click = slide • Right-click = clear
     </div>
   </div>
 
   <script>
-    // ------------- Audio + Sample Handling -------------
+    /* ---------- Utilities ---------- */
+    function createKnob(element, { min, max, value, onChange }) {
+      let currentValue = value;
+      let dragging = false;
+      let lastY = 0;
+      const valueRange = max - min;
 
-    const AudioContext = window.AudioContext || window.webkitAudioContext;
-    let audioCtx = null;
-    let masterGain = null;
-
-    function ensureAudioContext() {
-      if (!audioCtx) {
-        audioCtx = new AudioContext();
-        masterGain = audioCtx.createGain();
-        masterGain.gain.value = 0.9;
-        masterGain.connect(audioCtx.destination);
-      }
-      if (audioCtx.state === "suspended") {
-        audioCtx.resume();
-      }
-    }
-
-    async function loadSample(url) {
-      ensureAudioContext();
-      const response = await fetch(url);
-      const arrayBuffer = await response.arrayBuffer();
-      return await audioCtx.decodeAudioData(arrayBuffer);
-    }
-
-    function playSampleFromBuffer(buffer, time = 0) {
-      if (!audioCtx || !buffer) return;
-      const src = audioCtx.createBufferSource();
-      src.buffer = buffer;
-      src.connect(masterGain);
-      const when = time || audioCtx.currentTime;
-      src.start(when);
-    }
-
-    // ------------- TB-303-ish Bass Synth -------------
-
-    function midiToFrequency(midiNote) {
-      // standard formula: f = 440 * 2^((n - 69)/12)
-      return 440 * Math.pow(2, (midiNote - 69) / 12);
-    }
-
-    // Bass synth parameters (controlled via UI)
-    let bassCutoff = 1000;      // Hz
-    let bassResonance = 12;     // Q
-    let bassEnvMod = 3000;      // Hz pushed by envelope
-    let bassDecay = 0.35;       // seconds
-    let bassAccentGain = 1.8;   // amplitude multiplier
-    let bassSlideTime = 0.08;   // seconds
-
-    // Monophonic bass voice state
-    const bassVoice = {
-      osc: null,
-      filter: null,
-      gain: null,
-      isActive: false,
-      currentMidi: null
-    };
-
-    function resetBassVoice() {
-      if (bassVoice.isActive && bassVoice.osc && audioCtx) {
-        const now = audioCtx.currentTime;
-        try {
-          bassVoice.osc.stop(now + 0.01);
-        } catch (e) {
-          // ignore if already stopped
-        }
-      }
-      bassVoice.osc = null;
-      bassVoice.filter = null;
-      bassVoice.gain = null;
-      bassVoice.isActive = false;
-      bassVoice.currentMidi = null;
-    }
-
-    function ensureBassVoice(now) {
-      ensureAudioContext();
-      if (!bassVoice.isActive) {
-        const osc = audioCtx.createOscillator();
-        osc.type = "sawtooth";
-
-        const filter = audioCtx.createBiquadFilter();
-        filter.type = "lowpass";
-
-        const gain = audioCtx.createGain();
-        gain.gain.setValueAtTime(0.0001, now);
-
-        osc.connect(filter);
-        filter.connect(gain);
-        gain.connect(masterGain);
-
-        osc.start(now);
-
-        bassVoice.osc = osc;
-        bassVoice.filter = filter;
-        bassVoice.gain = gain;
-        bassVoice.isActive = true;
-      }
-    }
-
-    const bassNoteOptions = [
-      { label: "-",  midi: null },
-      { label: "C3", midi: 48 },
-      { label: "D3", midi: 50 },
-      { label: "E3", midi: 52 },
-      { label: "G3", midi: 55 },
-      { label: "A3", midi: 57 }
-    ];
-
-    const bassSteps = new Array(16).fill(0);        // note index
-    const bassAccent = new Array(16).fill(false);   // accent flags
-    const bassSlide  = new Array(16).fill(false);   // slide flags
-    const bassStepElements = [];
-
-    function triggerBassStep(stepIndex, time = 0) {
-      if (!audioCtx) ensureAudioContext();
-      const now = time || (audioCtx ? audioCtx.currentTime : 0);
-
-      const noteIndex = bassSteps[stepIndex];
-      const noteOpt = bassNoteOptions[noteIndex];
-      const hasNote = noteOpt && noteOpt.midi !== null;
-
-      const isAccent = bassAccent[stepIndex];
-      // Slide flag is stored on the *current* step: "slide into this note from the previous one"
-      const isSlideFromPrev = bassSlide[stepIndex] && bassVoice.currentMidi !== null;
-
-
-      if (!hasNote) {
-        return; // no note to play on this step
+      function updateAngleFromValue() {
+        const norm = (currentValue - min) / valueRange; // 0..1
+        const minAngle = -135;
+        const maxAngle = 135;
+        const angle = minAngle + norm * (maxAngle - minAngle);
+        element.style.transform = `rotate(${angle}deg)`;
       }
 
-      const targetMidi = noteOpt.midi;
-      const targetFreq = midiToFrequency(targetMidi);
-
-      ensureBassVoice(now);
-
-      const osc = bassVoice.osc;
-      const filter = bassVoice.filter;
-      const gain = bassVoice.gain;
-
-      const baseCutoff = bassCutoff;
-      const envAmount = bassEnvMod;
-      const accentFactor = isAccent ? 1.2 : 1.0;
-
-      filter.Q.setValueAtTime(bassResonance, now);
-
-      if (!isSlideFromPrev || !bassVoice.isActive || bassVoice.currentMidi === null) {
-        // No slide: jump to frequency and retrigger envelopes
-
-        osc.frequency.setValueAtTime(targetFreq, now);
-
-        // Filter envelope: base → peak → back to base
-        const peakCutoff = baseCutoff + envAmount * accentFactor;
-        filter.frequency.cancelScheduledValues(now);
-        filter.frequency.setValueAtTime(baseCutoff, now);
-        filter.frequency.linearRampToValueAtTime(peakCutoff, now + 0.01);
-        filter.frequency.exponentialRampToValueAtTime(baseCutoff, now + bassDecay);
-
-        // Amplitude envelope
-        const peakAmp = isAccent ? bassAccentGain : 1.0;
-        gain.gain.cancelScheduledValues(now);
-        gain.gain.setValueAtTime(0.0001, now);
-        gain.gain.exponentialRampToValueAtTime(peakAmp, now + 0.01);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + bassDecay);
-      } else {
-        // Slide: glide from previous freq to new freq; don't retrigger env
-        const prevFreq = midiToFrequency(bassVoice.currentMidi);
-        osc.frequency.setValueAtTime(prevFreq, now);
-        osc.frequency.linearRampToValueAtTime(
-          targetFreq,
-          now + bassSlideTime
-        );
-        // Filter & amp envelopes are left as-is (classic 303 slide behavior)
+      function setValueFromDelta(deltaY) {
+        const sensitivity = valueRange / 150;
+        currentValue -= deltaY * sensitivity;
+        if (currentValue < min) currentValue = min;
+        if (currentValue > max) currentValue = max;
+        updateAngleFromValue();
+        if (onChange) onChange(currentValue);
       }
 
-      bassVoice.currentMidi = targetMidi;
+      element.addEventListener("mousedown", (e) => {
+        dragging = true;
+        lastY = e.clientY;
+        e.preventDefault();
+      });
+
+      window.addEventListener("mousemove", (e) => {
+        if (!dragging) return;
+        const deltaY = e.clientY - lastY;
+        lastY = e.clientY;
+        setValueFromDelta(deltaY);
+      });
+
+      window.addEventListener("mouseup", () => {
+        dragging = false;
+      });
+
+      currentValue = value;
+      updateAngleFromValue();
     }
 
-    // ------------- Drum Track Definitions -------------
-
-    const trackConfigs = [
-      {
-        id: "kick",
-        label: "Kick",
-        color: "#f97316",
-        samples: [
-          { name: "Kick 1", url: "sounds/TR-808/Kick/Kick01.wav" },
-          { name: "Kick 2", url: "sounds/TR-808/Kick/Kick02.wav" }
-        ]
-      },
-      {
-        id: "snare",
-        label: "Snare",
-        color: "#22d3ee",
-        samples: [
-          { name: "Snare 1", url: "sounds/TR-808/Snare/Snare01.wav" },
-          { name: "Snare 2", url: "sounds/TR-808/Snare/Snare02.wav" }
-        ]
-      },
-      {
-        id: "closed hat",
-        label: "Closed Hat",
-        color: "#a855f7",
-        samples: [
-          { name: "Closed Hat 1", url: "sounds/TR-808/ClosedHiHat/ClosedHat01.wav" },
-          { name: "Closed Hat 2", url: "sounds/TR-808/ClosedHiHat/ClosedHat02.wav" }
-        ]
-      }
-    ];
-
-    const tracks = trackConfigs.map(config => ({
-      ...config,
-      steps: new Array(16).fill(false),
-      buffers: new Array(config.samples.length).fill(null),
-      selectedSampleIndex: 0,
-      stepElements: [],
-      selectElement: null
-    }));
-
-    async function preloadAllSamples() {
-      for (const track of tracks) {
-        for (let i = 0; i < track.samples.length; i++) {
-          try {
-            const buffer = await loadSample(track.samples[i].url);
-            track.buffers[i] = buffer;
-            console.log(`Loaded sample: ${track.label} – ${track.samples[i].name}`);
-          } catch (err) {
-            console.warn(`Could not load sample for ${track.id}`, err);
-          }
-        }
-      }
+    function midiToNoteName(midi) {
+      const names = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+      const pc = midi % 12;
+      const octave = Math.floor(midi / 12) - 1;
+      return names[pc] + octave;
     }
 
-    // ------------- UI Construction -------------
+    /* ---------- Drum tracks (5) ---------- */
 
     const tracksContainer = document.getElementById("tracksContainer");
     const bassGrid = document.getElementById("bassGrid");
-    const playButton = document.getElementById("playButton");
-    const tempoSlider = document.getElementById("tempoSlider");
-    const tempoValue = document.getElementById("tempoValue");
-    const clearButton = document.getElementById("clearButton");
+    const keyboardKeys = document.getElementById("keyboardKeys");
 
-    const cutoffSlider = document.getElementById("bassCutoffSlider");
-    const resSlider = document.getElementById("bassResSlider");
-    const envModSlider = document.getElementById("bassEnvModSlider");
-    const decaySlider = document.getElementById("bassDecaySlider");
-    const accentSlider = document.getElementById("bassAccentSlider");
-    const slideSlider = document.getElementById("bassSlideSlider");
+    const trackConfigs = [
+      { id: "kick",  label: "Kick" },
+      { id: "snare", label: "Snare" },
+      { id: "ch",    label: "Closed Hat" },
+      { id: "oh",    label: "Open Hat" },
+      { id: "clap",  label: "Clap" }
+    ];
 
-    // Drums UI
+    const tracks = trackConfigs.map(cfg => ({
+      ...cfg,
+      stepElements: []
+    }));
+
     for (const track of tracks) {
       const row = document.createElement("div");
       row.classList.add("track-row");
 
-      const infoColumn = document.createElement("div");
-      infoColumn.classList.add("track-info");
+      const info = document.createElement("div");
+      info.classList.add("track-info");
+      const label = document.createElement("div");
+      label.classList.add("track-label");
+      label.textContent = track.label.toUpperCase();
+      info.appendChild(label);
 
-      const labelEl = document.createElement("div");
-      labelEl.classList.add("track-label");
-      labelEl.textContent = track.label;
-      labelEl.style.color = track.color;
+      const grid = document.createElement("div");
+      grid.classList.add("step-grid");
 
-      const sampleSelect = document.createElement("select");
-      sampleSelect.classList.add("sample-select");
-      track.samples.forEach((s, idx) => {
-        const opt = document.createElement("option");
-        opt.value = idx;
-        opt.textContent = s.name;
-        sampleSelect.appendChild(opt);
-      });
-      sampleSelect.addEventListener("change", () => {
-        track.selectedSampleIndex = Number(sampleSelect.value);
-      });
-      track.selectElement = sampleSelect;
-
-      infoColumn.appendChild(labelEl);
-      infoColumn.appendChild(sampleSelect);
-
-      const stepGrid = document.createElement("div");
-      stepGrid.classList.add("step-grid");
-
-      for (let stepIndex = 0; stepIndex < 16; stepIndex++) {
+      for (let i = 0; i < 16; i++) {
         const stepEl = document.createElement("div");
         stepEl.classList.add("step");
-        stepEl.dataset.trackId = track.id;
-        stepEl.dataset.stepIndex = stepIndex;
-
         stepEl.addEventListener("click", () => {
-          const idx = stepIndex;
-          track.steps[idx] = !track.steps[idx];
-          stepEl.classList.toggle("on", track.steps[idx]);
+          stepEl.classList.toggle("on");
         });
-
-        stepGrid.appendChild(stepEl);
+        grid.appendChild(stepEl);
         track.stepElements.push(stepEl);
       }
 
-      row.appendChild(infoColumn);
-      row.appendChild(stepGrid);
+      row.appendChild(info);
+      row.appendChild(grid);
       tracksContainer.appendChild(row);
     }
 
-    // Bass UI
+    /* ---------- Bassline grid + keyboard ---------- */
+
+    const bassSteps = new Array(16).fill(null);  // midi or null
+    const bassAccent = new Array(16).fill(false);
+    const bassSlide = new Array(16).fill(false);
+    const bassStepElements = [];
+
+    let bassOctave = 3; // centered at C3
+    const octLabelEl = document.getElementById("octLabel");
+    const octDownBtn = document.getElementById("octDown");
+    const octUpBtn = document.getElementById("octUp");
+    const randomBassBtn = document.getElementById("randomBassBtn");
+
+    function updateOctLabel() {
+      octLabelEl.textContent = `Oct ${bassOctave}`;
+    }
+    updateOctLabel();
+
+    // Build mini keyboard (C to B, 12 keys)
+    const keyboardNotes = [
+      { name: "C",  semitone: 0 },
+      { name: "C#", semitone: 1 },
+      { name: "D",  semitone: 2 },
+      { name: "D#", semitone: 3 },
+      { name: "E",  semitone: 4 },
+      { name: "F",  semitone: 5 },
+      { name: "F#", semitone: 6 },
+      { name: "G",  semitone: 7 },
+      { name: "G#", semitone: 8 },
+      { name: "A",  semitone: 9 },
+      { name: "A#", semitone: 10 },
+      { name: "B",  semitone: 11 }
+    ];
+
+    let currentBassNote = null;
+    let selectedKeyEl = null;
+
+    const blackSemitones = new Set([1, 3, 6, 8, 10]);
+
+    keyboardNotes.forEach(note => {
+      const key = document.createElement("div");
+      key.classList.add("key");
+      if (blackSemitones.has(note.semitone)) {
+        key.classList.add("black");
+      } else {
+        key.classList.add("white");
+      }
+      key.dataset.semitone = note.semitone;
+
+      const label = document.createElement("div");
+      label.classList.add("key-label");
+      label.textContent = note.name;
+      key.appendChild(label);
+
+      key.addEventListener("click", () => {
+        const semitone = Number(key.dataset.semitone);
+        const midi = 12 * (bassOctave + 1) + semitone;
+        currentBassNote = { midi, semitone };
+
+        if (selectedKeyEl) selectedKeyEl.classList.remove("selected");
+        key.classList.add("selected");
+        selectedKeyEl = key;
+      });
+
+      keyboardKeys.appendChild(key);
+    });
+
+
+    // Default selected note: C3
+    (function selectDefaultKey() {
+      const defaultKey = keyboardKeys.querySelector('.key');
+      if (!defaultKey) return;
+      defaultKey.click();
+    })();
+
+    octDownBtn.addEventListener("click", () => {
+      if (bassOctave > 1) {
+        bassOctave--;
+        updateOctLabel();
+        if (currentBassNote) {
+          const semitone = currentBassNote.semitone;
+          currentBassNote.midi = 12 * (bassOctave + 1) + semitone;
+        }
+      }
+    });
+
+    octUpBtn.addEventListener("click", () => {
+      if (bassOctave < 6) {
+        bassOctave++;
+        updateOctLabel();
+        if (currentBassNote) {
+          const semitone = currentBassNote.semitone;
+          currentBassNote.midi = 12 * (bassOctave + 1) + semitone;
+        }
+      }
+    });
+
+    // Build bass step grid
     for (let i = 0; i < 16; i++) {
       const stepEl = document.createElement("div");
       stepEl.classList.add("step");
-      stepEl.textContent = bassNoteOptions[bassSteps[i]].label;
+      stepEl.textContent = "-";
 
       stepEl.addEventListener("click", (e) => {
-        // Shift+Click = toggle accent
+        // Shift: accent
         if (e.shiftKey) {
           bassAccent[i] = !bassAccent[i];
           stepEl.style.textDecoration = bassAccent[i] ? "underline" : "none";
           return;
         }
 
-        // Alt+Click = toggle slide
+        // Alt: slide
         if (e.altKey) {
           bassSlide[i] = !bassSlide[i];
           stepEl.style.fontStyle = bassSlide[i] ? "italic" : "normal";
           return;
         }
 
-        // Plain click = cycle note
-        bassSteps[i] = (bassSteps[i] + 1) % bassNoteOptions.length;
-        const opt = bassNoteOptions[bassSteps[i]];
-        stepEl.textContent = opt.label;
-
-        const isOn = opt.midi !== null;
-        stepEl.classList.toggle("on", isOn);
+        // Normal click: set/unset note using currently selected keyboard note
+        if (!currentBassNote) return;
+        if (bassSteps[i] === currentBassNote.midi) {
+          // toggle off
+          bassSteps[i] = null;
+          stepEl.textContent = "-";
+          stepEl.classList.remove("on");
+        } else {
+          bassSteps[i] = currentBassNote.midi;
+          stepEl.textContent = midiToNoteName(currentBassNote.midi);
+          stepEl.classList.add("on");
+        }
       });
 
-        // Right-click = clear note, accent & slide
-        stepEl.addEventListener("contextmenu", (e) => {
+      stepEl.addEventListener("contextmenu", (e) => {
         e.preventDefault();
-        bassSteps[i] = 0;
+        bassSteps[i] = null;
         bassAccent[i] = false;
         bassSlide[i] = false;
-
-        stepEl.textContent = bassNoteOptions[0].label;
+        stepEl.textContent = "-";
         stepEl.classList.remove("on");
         stepEl.style.textDecoration = "none";
         stepEl.style.fontStyle = "normal";
       });
-
 
       bassGrid.appendChild(stepEl);
       bassStepElements.push(stepEl);
     }
 
-    // Bass controls UI bindings
-    cutoffSlider.addEventListener("input", () => {
-      bassCutoff = Number(cutoffSlider.value);
-    });
-    resSlider.addEventListener("input", () => {
-      bassResonance = Number(resSlider.value);
-    });
-    envModSlider.addEventListener("input", () => {
-      bassEnvMod = Number(envModSlider.value);
-    });
-    decaySlider.addEventListener("input", () => {
-      bassDecay = Number(decaySlider.value) / 1000; // ms -> seconds
-    });
-    accentSlider.addEventListener("input", () => {
-      bassAccentGain = Number(accentSlider.value);
-    });
-    slideSlider.addEventListener("input", () => {
-      bassSlideTime = Number(slideSlider.value) / 1000; // ms -> seconds
+    /* ---------- Random acid bassline ---------- */
+
+    function randomizeBassline() {
+      // C minor-ish scale degrees
+      const degrees = [0, 3, 5, 7, 10]; // C, D#, F, G, A#
+      for (let i = 0; i < 16; i++) {
+        const el = bassStepElements[i];
+
+        // 65% chance of a note
+        if (Math.random() < 0.65) {
+          const deg = degrees[Math.floor(Math.random() * degrees.length)];
+          const midi = 12 * (bassOctave + 1) + deg;
+          bassSteps[i] = midi;
+          el.textContent = midiToNoteName(midi);
+          el.classList.add("on");
+          // Accent ~35%
+          bassAccent[i] = Math.random() < 0.35;
+          el.style.textDecoration = bassAccent[i] ? "underline" : "none";
+          // Clear slide for now; we set later
+          bassSlide[i] = false;
+          el.style.fontStyle = "normal";
+        } else {
+          bassSteps[i] = null;
+          bassAccent[i] = false;
+          bassSlide[i] = false;
+          el.textContent = "-";
+          el.classList.remove("on");
+          el.style.textDecoration = "none";
+          el.style.fontStyle = "normal";
+        }
+      }
+
+      // Add slides between consecutive notes (~30% chance)
+      for (let i = 0; i < 15; i++) {
+        if (bassSteps[i] !== null && bassSteps[i + 1] !== null && Math.random() < 0.3) {
+          bassSlide[i + 1] = true;
+          bassStepElements[i + 1].style.fontStyle = "italic";
+        }
+      }
+    }
+
+    randomBassBtn.addEventListener("click", () => {
+      randomizeBassline();
     });
 
-    // ------------- Sequencer State -------------
+    /* ---------- Sequencer playhead (visual only) ---------- */
 
-    let currentStep = 0;
+    const stepLedEls = Array.from(document.querySelectorAll(".step-indicator-cell .step-led"));
+
+    let tempo = 130;
     let isPlaying = false;
-    let tempo = Number(tempoSlider.value);
+    let currentStep = 0;
     let intervalId = null;
 
-    tempoSlider.addEventListener("input", () => {
-      tempo = Number(tempoSlider.value);
-      tempoValue.textContent = tempo.toString();
-
-      if (isPlaying) {
-        stopSequencer();
-        startSequencer();
-      }
-    });
-
-    clearButton.addEventListener("click", () => {
-      // clear drums
-      for (const track of tracks) {
-        track.steps.fill(false);
-        for (const stepEl of track.stepElements) {
-          stepEl.classList.remove("on");
-        }
-      }
-      // clear bass notes, accents, slides
-      for (let i = 0; i < 16; i++) {
-        bassSteps[i] = 0;
-        bassAccent[i] = false;
-        bassSlide[i] = false;
-        const stepEl = bassStepElements[i];
-        stepEl.textContent = bassNoteOptions[0].label;
-        stepEl.classList.remove("on");
-        stepEl.style.textDecoration = "none";
-        stepEl.style.fontStyle = "normal";
-      }
-      resetBassVoice();
-    });
+    function highlightStep(step) {
+      stepLedEls.forEach((el, idx) => {
+        el.classList.toggle("active", idx === step);
+      });
+      tracks.forEach(track => {
+        track.stepElements.forEach((el, idx) => {
+          el.classList.toggle("current", idx === step);
+        });
+      });
+      bassStepElements.forEach((el, idx) => {
+        el.classList.toggle("current", idx === step);
+      });
+    }
 
     function scheduleStep() {
-      // Remove highlight from current step in all tracks + bass
-      for (const track of tracks) {
-        track.stepElements[currentStep].classList.remove("current");
-      }
-      bassStepElements[currentStep].classList.remove("current");
-
       currentStep = (currentStep + 1) % 16;
-
-      // Highlight new step
-      for (const track of tracks) {
-        track.stepElements[currentStep].classList.add("current");
-      }
-      bassStepElements[currentStep].classList.add("current");
-
-      // Drums
-      for (const track of tracks) {
-        if (track.steps[currentStep]) {
-          const buffer = track.buffers[track.selectedSampleIndex];
-          if (buffer) {
-            playSampleFromBuffer(buffer);
-          } else {
-            console.warn(`No buffer loaded for ${track.id} sample index ${track.selectedSampleIndex}`);
-          }
-        }
-      }
-
-      // Bass
-      triggerBassStep(currentStep);
+      highlightStep(currentStep);
     }
 
     function startSequencer() {
       if (isPlaying) return;
-      ensureAudioContext();
       isPlaying = true;
-      playButton.textContent = "Stop";
-
-      preloadAllSamples(); // fire & forget
-
-      const intervalMs = (60_000 / tempo) / 4; // 16th notes
+      startStopLabel.textContent = "Stop";
+      startStopLed.classList.add("active");
+      const intervalMs = (60000 / tempo) / 4; // 16th notes
+      highlightStep(currentStep);
       intervalId = setInterval(scheduleStep, intervalMs);
     }
 
     function stopSequencer() {
       isPlaying = false;
-      playButton.textContent = "Play";
+      startStopLabel.textContent = "Start";
+      startStopLed.classList.remove("active");
       if (intervalId) clearInterval(intervalId);
       intervalId = null;
-
-      // Remove highlights
-      for (const track of tracks) {
-        track.stepElements[currentStep].classList.remove("current");
-      }
-      bassStepElements[currentStep].classList.remove("current");
       currentStep = 0;
-
-      resetBassVoice();
+      highlightStep(0);
     }
 
-    playButton.addEventListener("click", () => {
-      if (isPlaying) {
-        stopSequencer();
-      } else {
-        startSequencer();
+    /* ---------- DOM bindings & knobs ---------- */
+
+    const startStopButton = document.getElementById("startStopButton");
+    const startStopLed = document.getElementById("startStopLed");
+    const startStopLabel = document.getElementById("startStopLabel");
+    const clearButton = document.getElementById("clearButton");
+    const tempoValueEl = document.getElementById("tempoValue");
+
+    startStopButton.addEventListener("click", () => {
+      if (isPlaying) stopSequencer();
+      else startSequencer();
+    });
+
+    clearButton.addEventListener("click", () => {
+      tracks.forEach(track => {
+        track.stepElements.forEach(el => el.classList.remove("on"));
+      });
+      bassStepElements.forEach((el, i) => {
+        bassSteps[i] = null;
+        bassAccent[i] = false;
+        bassSlide[i] = false;
+        el.textContent = "-";
+        el.classList.remove("on");
+        el.style.textDecoration = "none";
+        el.style.fontStyle = "normal";
+      });
+    });
+
+    // Tempo knob
+    const tempoKnobEl = document.getElementById("knob-tempo");
+    createKnob(tempoKnobEl, {
+      min: 60,
+      max: 180,
+      value: 130,
+      onChange: (val) => {
+        tempo = Math.round(val);
+        tempoValueEl.textContent = `${tempo.toFixed(1)}`;
+        if (isPlaying) {
+          stopSequencer();
+          startSequencer();
+        }
       }
+    });
+
+    // Bass parameter knobs (UI only for now)
+    const paramKnobIds = [
+      "knob-cutoff",
+      "knob-res",
+      "knob-envmod",
+      "knob-decay",
+      "knob-accent",
+      "knob-slide"
+    ];
+
+    paramKnobIds.forEach((id) => {
+      const el = document.getElementById(id);
+      const min = Number(el.getAttribute("data-min"));
+      const max = Number(el.getAttribute("data-max"));
+      const val = Number(el.getAttribute("data-value"));
+
+      createKnob(el, {
+        min,
+        max,
+        value: val,
+        onChange: () => {
+          // will be wired to audio later
+        }
+      });
     });
   </script>
 </body>
