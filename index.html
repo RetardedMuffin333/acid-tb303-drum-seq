@@ -952,7 +952,229 @@
   </div>
 
   <script>
-    /* ---------- Utilities ---------- */
+    // ----------------- Audio Engine -----------------
+
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    let audioCtx = null;
+    let masterGain = null;
+
+    function ensureAudioContext() {
+      if (!audioCtx) {
+        audioCtx = new AudioContextClass();
+        masterGain = audioCtx.createGain();
+        masterGain.gain.value = 0.8;
+        masterGain.connect(audioCtx.destination);
+      }
+      if (audioCtx.state === "suspended") {
+        audioCtx.resume();
+      }
+    }
+
+    // --- Simple drum synths (no samples yet) ---
+
+    let noiseBuffer = null;
+
+    function getNoiseBuffer() {
+      if (!audioCtx) return null;
+      if (noiseBuffer) return noiseBuffer;
+      const buffer = audioCtx.createBuffer(1, audioCtx.sampleRate * 1.5, audioCtx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < data.length; i++) {
+        data[i] = Math.random() * 2 - 1;
+      }
+      noiseBuffer = buffer;
+      return buffer;
+    }
+
+    function playKick(time) {
+      if (!audioCtx) return;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(120, time);
+      osc.frequency.exponentialRampToValueAtTime(40, time + 0.15);
+
+      gain.gain.setValueAtTime(1.0, time);
+      gain.gain.exponentialRampToValueAtTime(0.001, time + 0.25);
+
+      osc.connect(gain);
+      gain.connect(masterGain);
+      osc.start(time);
+      osc.stop(time + 0.3);
+    }
+
+    function playSnare(time) {
+      if (!audioCtx) return;
+      const buffer = getNoiseBuffer();
+      if (!buffer) return;
+
+      const src = audioCtx.createBufferSource();
+      src.buffer = buffer;
+
+      const bandpass = audioCtx.createBiquadFilter();
+      bandpass.type = "bandpass";
+      bandpass.frequency.value = 1800;
+      bandpass.Q.value = 0.8;
+
+      const gain = audioCtx.createGain();
+      gain.gain.setValueAtTime(0.8, time);
+      gain.gain.exponentialRampToValueAtTime(0.001, time + 0.18);
+
+      src.connect(bandpass);
+      bandpass.connect(gain);
+      gain.connect(masterGain);
+
+      src.start(time);
+      src.stop(time + 0.2);
+    }
+
+    function playHat(time, open) {
+      if (!audioCtx) return;
+      const buffer = getNoiseBuffer();
+      if (!buffer) return;
+
+      const src = audioCtx.createBufferSource();
+      src.buffer = buffer;
+
+      const highpass = audioCtx.createBiquadFilter();
+      highpass.type = "highpass";
+      highpass.frequency.value = 6000;
+
+      const gain = audioCtx.createGain();
+      const dur = open ? 0.35 : 0.08;
+
+      gain.gain.setValueAtTime(0.6, time);
+      gain.gain.exponentialRampToValueAtTime(0.0001, time + dur);
+
+      src.connect(highpass);
+      highpass.connect(gain);
+      gain.connect(masterGain);
+
+      src.start(time);
+      src.stop(time + dur + 0.05);
+    }
+
+    function playClap(time) {
+      if (!audioCtx) return;
+      const buffer = getNoiseBuffer();
+      if (!buffer) return;
+
+      const src = audioCtx.createBufferSource();
+      src.buffer = buffer;
+
+      const bandpass = audioCtx.createBiquadFilter();
+      bandpass.type = "bandpass";
+      bandpass.frequency.value = 1800;
+      bandpass.Q.value = 0.9;
+
+      const gain = audioCtx.createGain();
+      // multi-pulse envelope approximation
+      gain.gain.setValueAtTime(0.8, time);
+      gain.gain.exponentialRampToValueAtTime(0.3, time + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, time + 0.25);
+
+      src.connect(bandpass);
+      bandpass.connect(gain);
+      gain.connect(masterGain);
+
+      src.start(time);
+      src.stop(time + 0.3);
+    }
+
+    // --- TB-style bass synth ---
+
+    let bassOsc = null;
+    let bassFilter = null;
+    let bassAmp = null;
+    let lastBassFreq = null;
+
+    const bassParams = {
+      cutoff: 1000,
+      resonance: 10,
+      envMod: 3000,
+      decay: 0.3,        // seconds
+      accentGain: 1.5,
+      slideTime: 0.08    // seconds
+    };
+
+    function initBassSynth() {
+      if (!audioCtx) return;
+      if (bassOsc) return;
+
+      bassOsc = audioCtx.createOscillator();
+      bassOsc.type = "sawtooth";
+
+      bassFilter = audioCtx.createBiquadFilter();
+      bassFilter.type = "lowpass";
+      bassFilter.frequency.value = bassParams.cutoff;
+      bassFilter.Q.value = bassParams.resonance;
+
+      bassAmp = audioCtx.createGain();
+      bassAmp.gain.value = 0;
+
+      bassOsc.connect(bassFilter);
+      bassFilter.connect(bassAmp);
+      bassAmp.connect(masterGain);
+
+      bassOsc.start();
+    }
+
+    function midiToFrequency(midi) {
+      return 440 * Math.pow(2, (midi - 69) / 12);
+    }
+
+    function playBassStep(stepIndex) {
+      if (!audioCtx) return;
+      if (!bassOsc) initBassSynth();
+
+      const midi = bassSteps[stepIndex];
+      const hasNote = midi !== null;
+      const time = audioCtx.currentTime;
+
+      if (!hasNote) {
+        // let previous note ring a bit; TB-303 often has gaps
+        return;
+      }
+
+      const freq = midiToFrequency(midi);
+      const isSlide = bassSlide[stepIndex] && lastBassFreq !== null;
+
+      if (isSlide) {
+        bassOsc.frequency.cancelScheduledValues(time);
+        bassOsc.frequency.setValueAtTime(lastBassFreq || freq, time);
+        bassOsc.frequency.linearRampToValueAtTime(freq, time + bassParams.slideTime);
+      } else {
+        bassOsc.frequency.cancelScheduledValues(time);
+        bassOsc.frequency.setValueAtTime(freq, time);
+      }
+
+      const accent = bassAccent[stepIndex] ? bassParams.accentGain : 1.0;
+
+      const baseCutoff = bassParams.cutoff;
+      const envAmount = bassParams.envMod * accent;
+      const decayTime = bassParams.decay;
+
+      bassFilter.Q.value = bassParams.resonance;
+
+      bassFilter.frequency.cancelScheduledValues(time);
+      bassFilter.frequency.setValueAtTime(baseCutoff + envAmount, time);
+      bassFilter.frequency.exponentialRampToValueAtTime(
+        Math.max(80, baseCutoff),
+        time + decayTime
+      );
+
+      bassAmp.gain.cancelScheduledValues(time);
+      bassAmp.gain.setValueAtTime(0.0, time);
+      bassAmp.gain.linearRampToValueAtTime(0.45 * accent, time + 0.01);
+      bassAmp.gain.exponentialRampToValueAtTime(0.0001, time + decayTime + 0.05);
+
+      lastBassFreq = freq;
+    }
+
+    // ----------------- UI + Sequencer -----------------
+
+    // Generic knob behavior
     function createKnob(element, { min, max, value, onChange }) {
       let currentValue = value;
       let dragging = false;
@@ -964,7 +1186,7 @@
         const minAngle = -135;
         const maxAngle = 135;
         const angle = minAngle + norm * (maxAngle - minAngle);
-        element.style.transform = `rotate(${angle}deg)`;
+        element.style.transform = "rotate(" + angle + "deg)";
       }
 
       function setValueFromDelta(deltaY) {
@@ -976,20 +1198,21 @@
         if (onChange) onChange(currentValue);
       }
 
-      element.addEventListener("mousedown", (e) => {
+      element.addEventListener("mousedown", function (e) {
         dragging = true;
         lastY = e.clientY;
         e.preventDefault();
+        ensureAudioContext();
       });
 
-      window.addEventListener("mousemove", (e) => {
+      window.addEventListener("mousemove", function (e) {
         if (!dragging) return;
         const deltaY = e.clientY - lastY;
         lastY = e.clientY;
         setValueFromDelta(deltaY);
       });
 
-      window.addEventListener("mouseup", () => {
+      window.addEventListener("mouseup", function () {
         dragging = false;
       });
 
@@ -997,18 +1220,28 @@
       updateAngleFromValue();
     }
 
-    function midiToNoteName(midi) {
-      const names = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
-      const pc = midi % 12;
-      const octave = Math.floor(midi / 12) - 1;
-      return names[pc] + octave;
-    }
-
-    /* ---------- Drum tracks (5) ---------- */
+    // ---- DOM references ----
 
     const tracksContainer = document.getElementById("tracksContainer");
     const bassGrid = document.getElementById("bassGrid");
     const keyboardKeys = document.getElementById("keyboardKeys");
+
+    const startStopButton = document.getElementById("startStopButton");
+    const startStopLed = document.getElementById("startStopLed");
+    const startStopLabel = document.getElementById("startStopLabel");
+    const clearButton = document.getElementById("clearButton");
+    const tempoValueEl = document.getElementById("tempoValue");
+
+    const tempoKnobEl = document.getElementById("knob-tempo");
+
+    const octLabelEl = document.getElementById("octLabel");
+    const octDownBtn = document.getElementById("octDown");
+    const octUpBtn = document.getElementById("octUp");
+    const randomBassBtn = document.getElementById("randomBassBtn");
+
+    const stepLedEls = Array.from(document.querySelectorAll(".step-indicator-cell .step-led"));
+
+    // ---- Drum tracks ----
 
     const trackConfigs = [
       { id: "kick",  label: "Kick" },
@@ -1018,59 +1251,56 @@
       { id: "clap",  label: "Clap" }
     ];
 
-    const tracks = trackConfigs.map(cfg => ({
-      ...cfg,
-      stepElements: []
-    }));
+    const tracks = trackConfigs.map(function (cfg) {
+      return { id: cfg.id, label: cfg.label, stepElements: [] };
+    });
 
-    for (const track of tracks) {
-      const row = document.createElement("div");
-      row.classList.add("track-row");
+    // build drum rows
+    (function buildDrumUI() {
+      tracks.forEach(function (track) {
+        const row = document.createElement("div");
+        row.classList.add("track-row");
 
-      const info = document.createElement("div");
-      info.classList.add("track-info");
-      const label = document.createElement("div");
-      label.classList.add("track-label");
-      label.textContent = track.label.toUpperCase();
-      info.appendChild(label);
+        const info = document.createElement("div");
+        info.classList.add("track-info");
+        const label = document.createElement("div");
+        label.classList.add("track-label");
+        label.textContent = track.label.toUpperCase();
+        info.appendChild(label);
 
-      const grid = document.createElement("div");
-      grid.classList.add("step-grid");
+        const grid = document.createElement("div");
+        grid.classList.add("step-grid");
 
-      for (let i = 0; i < 16; i++) {
-        const stepEl = document.createElement("div");
-        stepEl.classList.add("step");
-        stepEl.addEventListener("click", () => {
-          stepEl.classList.toggle("on");
-        });
-        grid.appendChild(stepEl);
-        track.stepElements.push(stepEl);
-      }
+        for (let i = 0; i < 16; i++) {
+          const stepEl = document.createElement("div");
+          stepEl.classList.add("step");
+          stepEl.addEventListener("click", function () {
+            ensureAudioContext();
+            stepEl.classList.toggle("on");
+          });
+          grid.appendChild(stepEl);
+          track.stepElements.push(stepEl);
+        }
 
-      row.appendChild(info);
-      row.appendChild(grid);
-      tracksContainer.appendChild(row);
-    }
+        row.appendChild(info);
+        row.appendChild(grid);
+        tracksContainer.appendChild(row);
+      });
+    })();
 
-    /* ---------- Bassline grid + keyboard ---------- */
+    // ---- Bassline grid + keyboard ----
 
-    const bassSteps = new Array(16).fill(null);  // midi or null
+    const bassSteps = new Array(16).fill(null); // MIDI or null
     const bassAccent = new Array(16).fill(false);
     const bassSlide = new Array(16).fill(false);
     const bassStepElements = [];
 
-    let bassOctave = 3; // centered at C3
-    const octLabelEl = document.getElementById("octLabel");
-    const octDownBtn = document.getElementById("octDown");
-    const octUpBtn = document.getElementById("octUp");
-    const randomBassBtn = document.getElementById("randomBassBtn");
-
+    let bassOctave = 3;
     function updateOctLabel() {
-      octLabelEl.textContent = `Oct ${bassOctave}`;
+      octLabelEl.textContent = "Oct " + bassOctave;
     }
     updateOctLabel();
 
-    // Build mini keyboard (C to B, 12 keys)
     const keyboardNotes = [
       { name: "C",  semitone: 0 },
       { name: "C#", semitone: 1 },
@@ -1086,59 +1316,48 @@
       { name: "B",  semitone: 11 }
     ];
 
+    const blackSemitones = new Set([1, 3, 6, 8, 10]);
+
     let currentBassNote = null;
     let selectedKeyEl = null;
 
-    const blackSemitones = new Set([1, 3, 6, 8, 10]);
+    (function buildKeyboard() {
+      keyboardNotes.forEach(function (note) {
+        const key = document.createElement("div");
+        key.classList.add("key");
+        if (blackSemitones.has(note.semitone)) {
+          key.classList.add("black");
+        } else {
+          key.classList.add("white");
+        }
+        key.dataset.semitone = note.semitone;
 
-    keyboardNotes.forEach(note => {
-      const key = document.createElement("div");
-      key.classList.add("key");
-      if (blackSemitones.has(note.semitone)) {
-        key.classList.add("black");
-      } else {
-        key.classList.add("white");
-      }
-      key.dataset.semitone = note.semitone;
+        const label = document.createElement("div");
+        label.classList.add("key-label");
+        label.textContent = note.name;
+        key.appendChild(label);
 
-      const label = document.createElement("div");
-      label.classList.add("key-label");
-      label.textContent = note.name;
-      key.appendChild(label);
+        key.addEventListener("click", function () {
+          ensureAudioContext();
+          const semitone = Number(key.dataset.semitone);
+          const midi = 12 * (bassOctave + 1) + semitone;
+          currentBassNote = { midi: midi, semitone: semitone };
 
-      key.addEventListener("click", () => {
-        const semitone = Number(key.dataset.semitone);
-        const midi = 12 * (bassOctave + 1) + semitone;
-        currentBassNote = { midi, semitone };
+          if (selectedKeyEl) selectedKeyEl.classList.remove("selected");
+          key.classList.add("selected");
+          selectedKeyEl = key;
+        });
 
-        if (selectedKeyEl) selectedKeyEl.classList.remove("selected");
-        key.classList.add("selected");
-        selectedKeyEl = key;
+        keyboardKeys.appendChild(key);
       });
 
-      keyboardKeys.appendChild(key);
-    });
-
-
-    // Default selected note: C3
-    (function selectDefaultKey() {
-      const defaultKey = keyboardKeys.querySelector('.key');
-      if (!defaultKey) return;
-      defaultKey.click();
+      // default: C
+      const defaultKey = keyboardKeys.querySelector(".key");
+      if (defaultKey) defaultKey.click();
     })();
 
-    octDownBtn.addEventListener("click", () => {
-      if (bassOctave > 1) {
-        bassOctave--;
-        updateOctLabel();
-        if (currentBassNote) {
-          const semitone = currentBassNote.semitone;
-          currentBassNote.midi = 12 * (bassOctave + 1) + semitone;
-        }
-      }
-    });
-
-    octUpBtn.addEventListener("click", () => {
+    octUpBtn.addEventListener("click", function () {
+      ensureAudioContext();
       if (bassOctave < 6) {
         bassOctave++;
         updateOctLabel();
@@ -1149,75 +1368,98 @@
       }
     });
 
-    // Build bass step grid
-    for (let i = 0; i < 16; i++) {
-      const stepEl = document.createElement("div");
-      stepEl.classList.add("step");
-      stepEl.textContent = "-";
-
-      stepEl.addEventListener("click", (e) => {
-        // Shift: accent
-        if (e.shiftKey) {
-          bassAccent[i] = !bassAccent[i];
-          stepEl.style.textDecoration = bassAccent[i] ? "underline" : "none";
-          return;
+    octDownBtn.addEventListener("click", function () {
+      ensureAudioContext();
+      if (bassOctave > 1) {
+        bassOctave--;
+        updateOctLabel();
+        if (currentBassNote) {
+          const semitone = currentBassNote.semitone;
+          currentBassNote.midi = 12 * (bassOctave + 1) + semitone;
         }
+      }
+    });
 
-        // Alt: slide
-        if (e.altKey) {
-          bassSlide[i] = !bassSlide[i];
-          stepEl.style.fontStyle = bassSlide[i] ? "italic" : "normal";
-          return;
-        }
-
-        // Normal click: set/unset note using currently selected keyboard note
-        if (!currentBassNote) return;
-        if (bassSteps[i] === currentBassNote.midi) {
-          // toggle off
-          bassSteps[i] = null;
-          stepEl.textContent = "-";
-          stepEl.classList.remove("on");
-        } else {
-          bassSteps[i] = currentBassNote.midi;
-          stepEl.textContent = midiToNoteName(currentBassNote.midi);
-          stepEl.classList.add("on");
-        }
-      });
-
-      stepEl.addEventListener("contextmenu", (e) => {
-        e.preventDefault();
-        bassSteps[i] = null;
-        bassAccent[i] = false;
-        bassSlide[i] = false;
-        stepEl.textContent = "-";
-        stepEl.classList.remove("on");
-        stepEl.style.textDecoration = "none";
-        stepEl.style.fontStyle = "normal";
-      });
-
-      bassGrid.appendChild(stepEl);
-      bassStepElements.push(stepEl);
+    function midiToNoteName(midi) {
+      const names = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+      const pc = midi % 12;
+      const oct = Math.floor(midi / 12) - 1;
+      return names[pc] + oct;
     }
 
-    /* ---------- Random acid bassline ---------- */
+    // build bass steps
+    (function buildBassGrid() {
+      for (let i = 0; i < 16; i++) {
+        const stepEl = document.createElement("div");
+        stepEl.classList.add("step");
+        stepEl.textContent = "-";
+
+        stepEl.addEventListener("click", function (e) {
+          ensureAudioContext();
+
+          // Shift: accent
+          if (e.shiftKey) {
+            bassAccent[i] = !bassAccent[i];
+            stepEl.style.textDecoration = bassAccent[i] ? "underline" : "none";
+            return;
+          }
+
+          // Alt: slide
+          if (e.altKey) {
+            bassSlide[i] = !bassSlide[i];
+            stepEl.style.fontStyle = bassSlide[i] ? "italic" : "normal";
+            return;
+          }
+
+          // Normal click: set/unset note with selected keyboard note
+          if (!currentBassNote) return;
+
+          if (bassSteps[i] === currentBassNote.midi) {
+            bassSteps[i] = null;
+            stepEl.textContent = "-";
+            stepEl.classList.remove("on");
+          } else {
+            bassSteps[i] = currentBassNote.midi;
+            stepEl.textContent = midiToNoteName(currentBassNote.midi);
+            stepEl.classList.add("on");
+          }
+        });
+
+        stepEl.addEventListener("contextmenu", function (e) {
+          e.preventDefault();
+          bassSteps[i] = null;
+          bassAccent[i] = false;
+          bassSlide[i] = false;
+          stepEl.textContent = "-";
+          stepEl.classList.remove("on");
+          stepEl.style.textDecoration = "none";
+          stepEl.style.fontStyle = "normal";
+        });
+
+        bassGrid.appendChild(stepEl);
+        bassStepElements.push(stepEl);
+      }
+    })();
+
+    // ---- Random acid bassline ----
 
     function randomizeBassline() {
-      // C minor-ish scale degrees
-      const degrees = [0, 3, 5, 7, 10]; // C, D#, F, G, A#
+      // C-minor-ish degrees
+      const degrees = [0, 3, 5, 7, 10];
+
       for (let i = 0; i < 16; i++) {
         const el = bassStepElements[i];
 
-        // 65% chance of a note
         if (Math.random() < 0.65) {
           const deg = degrees[Math.floor(Math.random() * degrees.length)];
           const midi = 12 * (bassOctave + 1) + deg;
           bassSteps[i] = midi;
           el.textContent = midiToNoteName(midi);
           el.classList.add("on");
-          // Accent ~35%
+
           bassAccent[i] = Math.random() < 0.35;
           el.style.textDecoration = bassAccent[i] ? "underline" : "none";
-          // Clear slide for now; we set later
+
           bassSlide[i] = false;
           el.style.fontStyle = "normal";
         } else {
@@ -1231,22 +1473,23 @@
         }
       }
 
-      // Add slides between consecutive notes (~30% chance)
+      // slides between consecutive notes
       for (let i = 0; i < 15; i++) {
-        if (bassSteps[i] !== null && bassSteps[i + 1] !== null && Math.random() < 0.3) {
+        if (bassSteps[i] !== null &&
+            bassSteps[i + 1] !== null &&
+            Math.random() < 0.3) {
           bassSlide[i + 1] = true;
           bassStepElements[i + 1].style.fontStyle = "italic";
         }
       }
     }
 
-    randomBassBtn.addEventListener("click", () => {
+    randomBassBtn.addEventListener("click", function () {
+      ensureAudioContext();
       randomizeBassline();
     });
 
-    /* ---------- Sequencer playhead (visual only) ---------- */
-
-    const stepLedEls = Array.from(document.querySelectorAll(".step-indicator-cell .step-led"));
+    // ---- Sequencer ----
 
     let tempo = 130;
     let isPlaying = false;
@@ -1254,31 +1497,58 @@
     let intervalId = null;
 
     function highlightStep(step) {
-      stepLedEls.forEach((el, idx) => {
+      stepLedEls.forEach(function (el, idx) {
         el.classList.toggle("active", idx === step);
       });
-      tracks.forEach(track => {
-        track.stepElements.forEach((el, idx) => {
+      tracks.forEach(function (track) {
+        track.stepElements.forEach(function (el, idx) {
           el.classList.toggle("current", idx === step);
         });
       });
-      bassStepElements.forEach((el, idx) => {
+      bassStepElements.forEach(function (el, idx) {
         el.classList.toggle("current", idx === step);
       });
+    }
+
+    function triggerStepAudio(stepIndex) {
+      const now = audioCtx ? audioCtx.currentTime : 0;
+
+      // Drums
+      tracks.forEach(function (track) {
+        const el = track.stepElements[stepIndex];
+        if (!el.classList.contains("on")) return;
+
+        if (track.id === "kick") playKick(now);
+        else if (track.id === "snare") playSnare(now);
+        else if (track.id === "ch") playHat(now, false);
+        else if (track.id === "oh") playHat(now, true);
+        else if (track.id === "clap") playClap(now);
+      });
+
+      // Bass
+      if (audioCtx) {
+        playBassStep(stepIndex);
+      }
     }
 
     function scheduleStep() {
       currentStep = (currentStep + 1) % 16;
       highlightStep(currentStep);
+      if (audioCtx) triggerStepAudio(currentStep);
     }
 
     function startSequencer() {
       if (isPlaying) return;
+      ensureAudioContext();
+      initBassSynth();
+
       isPlaying = true;
       startStopLabel.textContent = "Stop";
       startStopLed.classList.add("active");
+
       const intervalMs = (60000 / tempo) / 4; // 16th notes
       highlightStep(currentStep);
+      if (audioCtx) triggerStepAudio(currentStep);
       intervalId = setInterval(scheduleStep, intervalMs);
     }
 
@@ -1292,24 +1562,20 @@
       highlightStep(0);
     }
 
-    /* ---------- DOM bindings & knobs ---------- */
+    // ---- Controls ----
 
-    const startStopButton = document.getElementById("startStopButton");
-    const startStopLed = document.getElementById("startStopLed");
-    const startStopLabel = document.getElementById("startStopLabel");
-    const clearButton = document.getElementById("clearButton");
-    const tempoValueEl = document.getElementById("tempoValue");
-
-    startStopButton.addEventListener("click", () => {
+    startStopButton.addEventListener("click", function () {
       if (isPlaying) stopSequencer();
       else startSequencer();
     });
 
-    clearButton.addEventListener("click", () => {
-      tracks.forEach(track => {
-        track.stepElements.forEach(el => el.classList.remove("on"));
+    clearButton.addEventListener("click", function () {
+      tracks.forEach(function (track) {
+        track.stepElements.forEach(function (el) {
+          el.classList.remove("on");
+        });
       });
-      bassStepElements.forEach((el, i) => {
+      bassStepElements.forEach(function (el, i) {
         bassSteps[i] = null;
         bassAccent[i] = false;
         bassSlide[i] = false;
@@ -1321,14 +1587,13 @@
     });
 
     // Tempo knob
-    const tempoKnobEl = document.getElementById("knob-tempo");
     createKnob(tempoKnobEl, {
       min: 60,
       max: 180,
       value: 130,
-      onChange: (val) => {
+      onChange: function (val) {
         tempo = Math.round(val);
-        tempoValueEl.textContent = `${tempo.toFixed(1)}`;
+        tempoValueEl.textContent = tempo.toFixed(1);
         if (isPlaying) {
           stopSequencer();
           startSequencer();
@@ -1336,31 +1601,34 @@
       }
     });
 
-    // Bass parameter knobs (UI only for now)
-    const paramKnobIds = [
-      "knob-cutoff",
-      "knob-res",
-      "knob-envmod",
-      "knob-decay",
-      "knob-accent",
-      "knob-slide"
-    ];
-
-    paramKnobIds.forEach((id) => {
+    // Bass parameter knobs
+    function hookParamKnob(id, key, transform) {
       const el = document.getElementById(id);
       const min = Number(el.getAttribute("data-min"));
       const max = Number(el.getAttribute("data-max"));
       const val = Number(el.getAttribute("data-value"));
 
       createKnob(el, {
-        min,
-        max,
+        min: min,
+        max: max,
         value: val,
-        onChange: () => {
-          // will be wired to audio later
+        onChange: function (v) {
+          const mapped = transform ? transform(v) : v;
+          bassParams[key] = mapped;
         }
       });
-    });
+
+      // initialise param once
+      bassParams[key] = transform ? transform(val) : val;
+    }
+
+    hookParamKnob("knob-cutoff", "cutoff", function (v) { return v; });
+    hookParamKnob("knob-res", "resonance", function (v) { return v; });
+    hookParamKnob("knob-envmod", "envMod", function (v) { return v; });
+    hookParamKnob("knob-decay", "decay", function (v) { return v / 1000; });       // ms -> s
+    hookParamKnob("knob-accent", "accentGain", function (v) { return v; });
+    hookParamKnob("knob-slide", "slideTime", function (v) { return v / 1000; });   // ms -> s
   </script>
+
 </body>
 </html>
