@@ -424,7 +424,7 @@
 
     .track-row {
       display: grid;
-      grid-template-columns: 120px 1fr;
+      grid-template-columns: 120px 1fr auto; /* label | grid | knob */
       align-items: center;
       gap: 10px;
     }
@@ -443,6 +443,21 @@
       color: #d1d5db;
     }
 
+    .track-vol .knob-ring {
+      width: 20px;
+      height: 20px;
+    }
+
+    .track-vol .knob {
+      width: 15px;
+      height: 15px;
+    }
+
+    .track-vol .knob-label {
+      font-size: 0.4rem;
+      letter-spacing: 0.12em;
+    }
+  
     .step-grid {
       display: grid;
       grid-template-columns: repeat(16, 1fr);
@@ -518,10 +533,11 @@
 
     .bass-row {
       display: grid;
-      grid-template-columns: 120px 1fr;
+      grid-template-columns: 120px 1fr auto; /* label | grid | knob */
       gap: 10px;
       align-items: center;
-      margin-top:10px;
+      margin-top: 6px;
+      margin-bottom: 14px;
     }
 
     .bass-label {
@@ -553,6 +569,34 @@
       color: #9ca3af;
       margin-top: 2px;
     }
+
+    .bass-step {
+      position: relative;
+    }
+
+    .bass-step.accent::before {
+      content: "A";
+      position: absolute;
+      top: 2px;
+      left: 3px;
+      font-size: 0.55rem;
+      color: #facc15;
+    }
+
+    .bass-step.slide::after {
+      content: "S";
+      position: absolute;
+      top: 2px;
+      right: 3px;
+      font-size: 0.55rem;
+      color: #f97316;
+    }
+
+    .bass-step.selected-step {
+      outline: 1px solid rgba(250, 204, 21, 0.9);
+      outline-offset: 1px;
+    }
+
 
 
     /* Mini keyboard TB-style */
@@ -731,6 +775,16 @@
       color: #9ca3af;
       text-align: center;
     }
+
+    .sample-select {
+      margin-top: 2px;
+      padding: 2px 6px;
+      font-size: 0.7rem;
+      background: #020617;
+      color: #e5e7eb;
+      border-radius: 4px;
+      border: 1px solid #4b5563;
+    }
   </style>
 </head>
 <body>
@@ -743,8 +797,8 @@
           <div class="acid-smiley-drip"></div>
         </div>
         <div class="brand-title">
-          <h1>ACID-808</h1>
-          <div class="brand-subtitle">TR-style drums • TB-style bass</div>
+          <h1>ACID DRUM SEQ</h1>
+          <div class="brand-subtitle">TR-style drums • TB-303 bass</div>
         </div>
       </div>
 
@@ -865,12 +919,25 @@
     <div id="tracksContainer" class="tracks"></div>
 
     <!-- BASS SECTION -->
-    <div class="section-label">Acid Bassline</div>
     <div class="bass-row">
       <div class="track-info">
         <div class="bass-label">Bassline</div>
       </div>
+
       <div id="bassGrid" class="step-grid"></div>
+
+      <div class="knob-control knob-with-ticks track-vol">
+        <div class="knob-ring">
+          <div
+            class="knob"
+            id="knob-bass-vol"
+            data-min="0"
+            data-max="1"
+            data-value="1"
+          ></div>
+        </div>
+        <div class="knob-label">VOL</div>
+      </div>
     </div>
 
     <!-- Piano + octave + random + knobs in one row -->
@@ -964,11 +1031,97 @@
         masterGain = audioCtx.createGain();
         masterGain.gain.value = 0.8;
         masterGain.connect(audioCtx.destination);
+        preloadAllDrumSamples(); // start loading drum samples
       }
       if (audioCtx.state === "suspended") {
         audioCtx.resume();
       }
     }
+
+  // ----------------- Drum samples -----------------
+
+  // TODO: update these URLs to match the actual filenames in sounds/TR-808
+  const drumSampleConfig = {
+    kick: [
+      { name: "808 Kick 1", url: "sounds/TR-808/kick/kick1.wav" },
+      { name: "808 Kick 2", url: "sounds/TR-808//kick/kick2.wav" }
+    ],
+    snare: [
+      { name: "808 Snare 1", url: "sounds/TR-808/snare/snare1.wav" },
+      { name: "808 Snare 2", url: "sounds/TR-808/snare/snare2.wav" }
+    ],
+    ch: [
+      { name: "808 CH 1", url: "sounds/TR-808/closedHiHat/ch1.wav" },
+      { name: "808 CH 2", url: "sounds/TR-808/closedHiHat/ch2.wav" }
+    ],
+    oh: [
+      { name: "808 OH 1", url: "sounds/TR-808/openHiHat/oh1.wav" },
+      { name: "808 OH 2", url: "sounds/TR-808/openHihat/oh2.wav" }
+    ],
+    clap: [
+      { name: "808 Clap 1", url: "sounds/TR-808/clap/clap1.wav" },
+      { name: "808 Clap 2", url: "sounds/TR-808/clap/clap2.wav" }
+    ]
+  };
+
+  // which sample is selected for each track
+  const drumSelectedIndex = {
+    kick: 0,
+    snare: 0,
+    ch: 0,
+    oh: 0,
+    clap: 0
+  };
+
+  const drumSampleBuffers = {}; // key: "track:index" => AudioBuffer
+
+  async function loadSample(url) {
+    ensureAudioContext();
+    const resp = await fetch(url);
+    const buf = await resp.arrayBuffer();
+    return await audioCtx.decodeAudioData(buf);
+  }
+
+  async function preloadAllDrumSamples() {
+    if (!audioCtx) return;
+    for (const trackId of Object.keys(drumSampleConfig)) {
+      const list = drumSampleConfig[trackId] || [];
+      for (let i = 0; i < list.length; i++) {
+        const key = trackId + ":" + i;
+        if (drumSampleBuffers[key]) continue;
+        try {
+          const buffer = await loadSample(list[i].url);
+          drumSampleBuffers[key] = buffer;
+        } catch (e) {
+          console.warn("Failed to load sample", list[i].url, e);
+        }
+      }
+    }
+  }
+
+  function playDrumSample(trackId, time) {
+    if (!audioCtx) return;
+    const list = drumSampleConfig[trackId] || [];
+    if (!list.length) return;
+
+    const idx = drumSelectedIndex[trackId] ?? 0;
+    const key = trackId + ":" + idx;
+    const buffer = drumSampleBuffers[key];
+
+    // If sample isn't loaded yet, just skip (or you could fall back to synth)
+    if (!buffer) return;
+
+    const src = audioCtx.createBufferSource();
+    src.buffer = buffer;
+
+    const gainNode = audioCtx.createGain();
+    const vol = trackVolume[trackId] ?? 1.0;
+    gainNode.gain.value = vol;
+
+    src.connect(gainNode);
+    gainNode.connect(masterGain);
+    src.start(time);
+  }
 
     // --- Simple drum synths (no samples yet) ---
 
@@ -1098,6 +1251,8 @@
       slideTime: 0.08    // seconds
     };
 
+    let bassVolume = 1.0;  // 0–1
+
     function initBassSynth() {
       if (!audioCtx) return;
       if (bassOsc) return;
@@ -1155,7 +1310,8 @@
       const envAmount = bassParams.envMod * accent;
       const decayTime = bassParams.decay;
 
-      bassFilter.Q.value = bassParams.resonance;
+      const baseRes = bassParams.resonance;
+      bassFilter.Q.value = bassAccent[stepIndex] ? baseRes * 1.3 : baseRes;
 
       bassFilter.frequency.cancelScheduledValues(time);
       bassFilter.frequency.setValueAtTime(baseCutoff + envAmount, time);
@@ -1166,8 +1322,8 @@
 
       bassAmp.gain.cancelScheduledValues(time);
       bassAmp.gain.setValueAtTime(0.0, time);
-      bassAmp.gain.linearRampToValueAtTime(0.45 * accent, time + 0.01);
-      bassAmp.gain.exponentialRampToValueAtTime(0.0001, time + decayTime + 0.05);
+      bassAmp.gain.linearRampToValueAtTime(0.6 * accent * bassVolume, time + 0.005);
+      bassAmp.gain.exponentialRampToValueAtTime(0.0001, time + decayTime + 0.03);
 
       lastBassFreq = freq;
     }
@@ -1241,6 +1397,40 @@
 
     const stepLedEls = Array.from(document.querySelectorAll(".step-indicator-cell .step-led"));
 
+    const patternModeBtn = document.getElementById("patternModeBtn");
+    const songModeBtn = document.getElementById("songModeBtn");
+    const patternButtons = Array.from(document.querySelectorAll(".pattern-button"));
+
+    // ---- Pattern / Song UI wiring ----
+
+    patternModeBtn.addEventListener("click", function () {
+      isSongMode = false;
+      patternModeBtn.classList.add("active");
+      songModeBtn.classList.remove("active");
+    });
+
+    songModeBtn.addEventListener("click", function () {
+      isSongMode = true;
+      songModeBtn.classList.add("active");
+      patternModeBtn.classList.remove("active");
+    });
+
+    patternButtons.forEach(function (btn, idx) {
+      btn.addEventListener("click", function () {
+        // only switch manually in Pattern mode
+        if (isSongMode) return;
+        if (idx === currentPatternIndex) return;
+
+        captureCurrentPatternTo(currentPatternIndex);
+        currentPatternIndex = idx;
+        loadPattern(currentPatternIndex);
+
+        patternButtons.forEach(function (b, i) {
+          b.classList.toggle("active", i === currentPatternIndex);
+        });
+      });
+    });
+
     // ---- Drum tracks ----
 
     const trackConfigs = [
@@ -1251,9 +1441,19 @@
       { id: "clap",  label: "Clap" }
     ];
 
+    // per-track volume (0–1)
+    const trackVolume = {
+      kick: 1.0,
+      snare: 0.9,
+      ch: 0.8,
+      oh: 0.8,
+      clap: 0.9
+    };
+
     const tracks = trackConfigs.map(function (cfg) {
       return { id: cfg.id, label: cfg.label, stepElements: [] };
     });
+
 
     // build drum rows
     (function buildDrumUI() {
@@ -1263,10 +1463,64 @@
 
         const info = document.createElement("div");
         info.classList.add("track-info");
+
+        // volume knob
+        const volWrap = document.createElement("div");
+        volWrap.classList.add("knob-control", "knob-with-ticks", "track-vol");
+
+        const volRing = document.createElement("div");
+        volRing.classList.add("knob-ring");
+
+        const volKnob = document.createElement("div");
+        volKnob.classList.add("knob");
+        volKnob.setAttribute("data-min", "0");
+        volKnob.setAttribute("data-max", "1");
+        const initialVol = trackVolume[track.id] ?? 1.0;
+        volKnob.setAttribute("data-value", String(initialVol));
+
+        volRing.appendChild(volKnob);
+        volWrap.appendChild(volRing);
+
+        const volLabel = document.createElement("div");
+        volLabel.classList.add("knob-label");
+        volLabel.textContent = "VOL";
+        volWrap.appendChild(volLabel);
+
+        //info.appendChild(volWrap);
+
         const label = document.createElement("div");
         label.classList.add("track-label");
         label.textContent = track.label.toUpperCase();
         info.appendChild(label);
+
+        const select = document.createElement("select");
+        select.classList.add("sample-select");
+
+        const samples = drumSampleConfig[track.id] || [];
+        samples.forEach(function (s, idx) {
+          const opt = document.createElement("option");
+          opt.value = String(idx);
+          opt.textContent = s.name;
+          select.appendChild(opt);
+        });
+
+        select.value = String(drumSelectedIndex[track.id] ?? 0);
+
+        select.addEventListener("change", function () {
+          drumSelectedIndex[track.id] = Number(select.value);
+        });
+
+        info.appendChild(select);
+
+        // hook volume knob behaviour
+        createKnob(volKnob, {
+          min: 0,
+          max: 1,
+          value: initialVol,
+          onChange: function (v) {
+            trackVolume[track.id] = v;
+          }
+        });
 
         const grid = document.createElement("div");
         grid.classList.add("step-grid");
@@ -1284,6 +1538,7 @@
 
         row.appendChild(info);
         row.appendChild(grid);
+        row.appendChild(volWrap);
         tracksContainer.appendChild(row);
       });
     })();
@@ -1294,6 +1549,8 @@
     const bassAccent = new Array(16).fill(false);
     const bassSlide = new Array(16).fill(false);
     const bassStepElements = [];
+    let selectedBassStepIndex = 0;
+
 
     let bassOctave = 3;
     function updateOctLabel() {
@@ -1346,6 +1603,13 @@
           if (selectedKeyEl) selectedKeyEl.classList.remove("selected");
           key.classList.add("selected");
           selectedKeyEl = key;
+
+          // apply this note to the currently selected bass step
+          const i = selectedBassStepIndex;
+          const stepEl = bassStepElements[i];
+          bassSteps[i] = midi;
+          stepEl.textContent = midiToNoteName(midi);
+          stepEl.classList.add("on");
         });
 
         keyboardKeys.appendChild(key);
@@ -1387,42 +1651,37 @@
       return names[pc] + oct;
     }
 
-    // build bass steps
-    (function buildBassGrid() {
+      // build bass steps
+      (function buildBassGrid() {
       for (let i = 0; i < 16; i++) {
-        const stepEl = document.createElement("div");
-        stepEl.classList.add("step");
-        stepEl.textContent = "-";
+          const stepEl = document.createElement("div");
+          stepEl.classList.add("step", "bass-step");  // <-- ADD THIS CLASS HERE
+          stepEl.textContent = "-";
 
         stepEl.addEventListener("click", function (e) {
           ensureAudioContext();
 
-          // Shift: accent
+          // Shift: toggle accent
           if (e.shiftKey) {
             bassAccent[i] = !bassAccent[i];
+            stepEl.classList.toggle("accent", bassAccent[i]);
             stepEl.style.textDecoration = bassAccent[i] ? "underline" : "none";
             return;
           }
 
-          // Alt: slide
+          // Alt: toggle slide
           if (e.altKey) {
             bassSlide[i] = !bassSlide[i];
+            stepEl.classList.toggle("slide", bassSlide[i]);
             stepEl.style.fontStyle = bassSlide[i] ? "italic" : "normal";
             return;
           }
 
-          // Normal click: set/unset note with selected keyboard note
-          if (!currentBassNote) return;
-
-          if (bassSteps[i] === currentBassNote.midi) {
-            bassSteps[i] = null;
-            stepEl.textContent = "-";
-            stepEl.classList.remove("on");
-          } else {
-            bassSteps[i] = currentBassNote.midi;
-            stepEl.textContent = midiToNoteName(currentBassNote.midi);
-            stepEl.classList.add("on");
-          }
+          // Normal click: select this step for note entry
+          selectedBassStepIndex = i;
+          bassStepElements.forEach(function (other, idx) {
+            other.classList.toggle("selected-step", idx === selectedBassStepIndex);
+          });
         });
 
         stepEl.addEventListener("contextmenu", function (e) {
@@ -1431,7 +1690,7 @@
           bassAccent[i] = false;
           bassSlide[i] = false;
           stepEl.textContent = "-";
-          stepEl.classList.remove("on");
+          stepEl.classList.remove("on", "accent", "slide", "selected-step");
           stepEl.style.textDecoration = "none";
           stepEl.style.fontStyle = "normal";
         });
@@ -1450,39 +1709,22 @@
       for (let i = 0; i < 16; i++) {
         const el = bassStepElements[i];
 
-        if (Math.random() < 0.65) {
-          const deg = degrees[Math.floor(Math.random() * degrees.length)];
-          const midi = 12 * (bassOctave + 1) + deg;
-          bassSteps[i] = midi;
-          el.textContent = midiToNoteName(midi);
-          el.classList.add("on");
+        const deg = degrees[Math.floor(Math.random() * degrees.length)];
+        const midi = 12 * (bassOctave + 1) + deg;
 
-          bassAccent[i] = Math.random() < 0.35;
-          el.style.textDecoration = bassAccent[i] ? "underline" : "none";
+        // always a note
+        bassSteps[i] = midi;
+        el.textContent = midiToNoteName(midi);
+        el.classList.add("on");
 
-          bassSlide[i] = false;
-          el.style.fontStyle = "normal";
-        } else {
-          bassSteps[i] = null;
-          bassAccent[i] = false;
-          bassSlide[i] = false;
-          el.textContent = "-";
-          el.classList.remove("on");
-          el.style.textDecoration = "none";
-          el.style.fontStyle = "normal";
-        }
+        // no accents / slides by default
+        bassAccent[i] = false;
+        bassSlide[i] = false;
+        el.classList.remove("accent", "slide");
+        el.style.textDecoration = "none";
+        el.style.fontStyle = "normal";
       }
-
-      // slides between consecutive notes
-      for (let i = 0; i < 15; i++) {
-        if (bassSteps[i] !== null &&
-            bassSteps[i + 1] !== null &&
-            Math.random() < 0.3) {
-          bassSlide[i + 1] = true;
-          bassStepElements[i + 1].style.fontStyle = "italic";
-        }
-      }
-    }
+    } 
 
     randomBassBtn.addEventListener("click", function () {
       ensureAudioContext();
@@ -1490,6 +1732,91 @@
     });
 
     // ---- Sequencer ----
+
+    // ---- Pattern / Song state ----
+
+    // 4 patterns (0–3) that store drums + bass
+    const patterns = [];
+
+    function createEmptyPattern() {
+      const drumState = {};
+      trackConfigs.forEach(function (cfg) {
+        drumState[cfg.id] = new Array(16).fill(false);
+      });
+      return {
+        drums: drumState,
+        bassSteps: new Array(16).fill(null),
+        bassAccent: new Array(16).fill(false),
+        bassSlide: new Array(16).fill(false)
+      };
+    }
+
+    for (let i = 0; i < 4; i++) {
+      patterns.push(createEmptyPattern());
+    }
+
+    let currentPatternIndex = 0;
+    let isSongMode = false;
+    const songPatternOrder = [0, 1, 2, 3];
+    let currentSongPatternPlayIndex = 0;
+
+    function captureCurrentPatternTo(index) {
+      const p = patterns[index];
+      if (!p) return;
+
+      // Drums
+      tracks.forEach(function (track) {
+        if (!p.drums[track.id]) {
+          p.drums[track.id] = new Array(16).fill(false);
+        }
+        for (let i = 0; i < 16; i++) {
+          p.drums[track.id][i] = track.stepElements[i].classList.contains("on");
+        }
+      });
+
+      // Bass
+      p.bassSteps = bassSteps.slice();
+      p.bassAccent = bassAccent.slice();
+      p.bassSlide = bassSlide.slice();
+    }
+
+    function loadPattern(index) {
+      const p = patterns[index];
+      if (!p) return;
+
+      // Drums
+      tracks.forEach(function (track) {
+        const arr = (p.drums && p.drums[track.id]) || [];
+        track.stepElements.forEach(function (el, i) {
+          const on = !!arr[i];
+          el.classList.toggle("on", on);
+        });
+      });
+
+      // Bass
+      for (let i = 0; i < 16; i++) {
+        const midi = (p.bassSteps && p.bassSteps[i] !== undefined) ? p.bassSteps[i] : null;
+        bassSteps[i] = midi;
+        bassAccent[i] = (p.bassAccent && p.bassAccent[i]) || false;
+        bassSlide[i] = (p.bassSlide && p.bassSlide[i]) || false;
+
+        const el = bassStepElements[i];
+        if (!el) continue;
+
+        if (midi === null) {
+          el.textContent = "-";
+          el.classList.remove("on");
+        } else {
+          el.textContent = midiToNoteName(midi);
+          el.classList.add("on");
+        }
+
+        el.classList.toggle("accent", bassAccent[i]);
+        el.classList.toggle("slide", bassSlide[i]);
+        el.style.textDecoration = bassAccent[i] ? "underline" : "none";
+        el.style.fontStyle = bassSlide[i] ? "italic" : "normal";
+      }
+    }
 
     let tempo = 130;
     let isPlaying = false;
@@ -1518,11 +1845,7 @@
         const el = track.stepElements[stepIndex];
         if (!el.classList.contains("on")) return;
 
-        if (track.id === "kick") playKick(now);
-        else if (track.id === "snare") playSnare(now);
-        else if (track.id === "ch") playHat(now, false);
-        else if (track.id === "oh") playHat(now, true);
-        else if (track.id === "clap") playClap(now);
+        playDrumSample(track.id, now);
       });
 
       // Bass
@@ -1533,6 +1856,22 @@
 
     function scheduleStep() {
       currentStep = (currentStep + 1) % 16;
+
+      // At the end of a bar in Song mode, jump to the next pattern
+      if (currentStep === 0 && isSongMode) {
+        const prev = currentPatternIndex;
+        captureCurrentPatternTo(prev);
+
+        currentSongPatternPlayIndex =
+          (currentSongPatternPlayIndex + 1) % songPatternOrder.length;
+        currentPatternIndex = songPatternOrder[currentSongPatternPlayIndex];
+        loadPattern(currentPatternIndex);
+
+        patternButtons.forEach(function (b, i) {
+          b.classList.toggle("active", i === currentPatternIndex);
+        });
+      }
+
       highlightStep(currentStep);
       if (audioCtx) triggerStepAudio(currentStep);
     }
@@ -1547,6 +1886,25 @@
       startStopLed.classList.add("active");
 
       const intervalMs = (60000 / tempo) / 4; // 16th notes
+
+      // Save current UI into its pattern before playback
+      captureCurrentPatternTo(currentPatternIndex);
+
+      if (isSongMode) {
+        // start from the first pattern in song order
+        currentSongPatternPlayIndex = 0;
+        currentPatternIndex = songPatternOrder[currentSongPatternPlayIndex];
+        loadPattern(currentPatternIndex);
+      } else {
+        // pattern mode: just reload the current pattern to be safe
+        loadPattern(currentPatternIndex);
+      }
+
+      patternButtons.forEach(function (b, i) {
+        b.classList.toggle("active", i === currentPatternIndex);
+      });
+
+      currentStep = 0;
       highlightStep(currentStep);
       if (audioCtx) triggerStepAudio(currentStep);
       intervalId = setInterval(scheduleStep, intervalMs);
@@ -1584,6 +1942,8 @@
         el.style.textDecoration = "none";
         el.style.fontStyle = "normal";
       });
+      // keep pattern storage in sync with cleared UI
+      captureCurrentPatternTo(currentPatternIndex);      
     });
 
     // Tempo knob
@@ -1628,7 +1988,19 @@
     hookParamKnob("knob-decay", "decay", function (v) { return v / 1000; });       // ms -> s
     hookParamKnob("knob-accent", "accentGain", function (v) { return v; });
     hookParamKnob("knob-slide", "slideTime", function (v) { return v / 1000; });   // ms -> s
-  </script>
 
+    const bassVolKnobEl = document.getElementById("knob-bass-vol");
+    if (bassVolKnobEl) {
+      createKnob(bassVolKnobEl, {
+        min: 0,
+        max: 1,
+        value: 1,
+        onChange: function (v) {
+          bassVolume = v;
+        }
+      });
+    }
+    
+  </script>
 </body>
 </html>
